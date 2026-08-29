@@ -22,6 +22,13 @@ type AppProps = {
   pictureInPictureApi?: PictureInPictureApi
 }
 
+type SupportedLanguage = 'en' | 'th'
+
+const languageLabels: Record<SupportedLanguage, string> = {
+  en: 'English',
+  th: 'Thai',
+}
+
 function getDefaultMediaDevices(): AppMediaDevices | undefined {
   return typeof navigator === 'undefined' ? undefined : navigator.mediaDevices
 }
@@ -60,6 +67,11 @@ function App({
   const [systemTracks, setSystemTracks] = useState<SessionTrack[]>([])
   const [microphoneTracks, setMicrophoneTracks] = useState<SessionTrack[]>([])
   const [pttActive, setPttActive] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [theirLanguage, setTheirLanguage] = useState<SupportedLanguage>('en')
+  const [myLanguage, setMyLanguage] = useState<SupportedLanguage>('th')
+  const [shortcut, setShortcut] = useState<string | undefined>()
+  const [shortcutCapture, setShortcutCapture] = useState(false)
   const [notice, setNotice] = useState<string | undefined>()
 
   const startSystemAudio = async () => {
@@ -140,6 +152,27 @@ function App({
   const microphoneLabel =
     microphoneStatus === 'active' ? 'Microphone ready' : 'Your microphone'
   const stopPushToTalk = () => setPttActive(false)
+  const incomingLanguage = theirLanguage === 'en' ? 'th' : 'en'
+  const outgoingLanguage = myLanguage === 'en' ? 'th' : 'en'
+  const incomingDirection = `${languageLabels[theirLanguage]} → ${languageLabels[incomingLanguage]}`
+  const outgoingDirection = `${languageLabels[myLanguage]} → ${languageLabels[outgoingLanguage]}`
+
+  const captureShortcut = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!shortcutCapture) {
+      return
+    }
+    if (event.key === 'Escape') {
+      setShortcutCapture(false)
+      return
+    }
+    if (['Alt', 'Control', 'Meta', 'Shift'].includes(event.key)) {
+      return
+    }
+
+    event.preventDefault()
+    setShortcut(event.key.length === 1 ? event.key.toUpperCase() : event.key)
+    setShortcutCapture(false)
+  }
 
   return (
     <main className="app-shell">
@@ -154,11 +187,68 @@ function App({
             <p className="eyebrow">SESSION</p>
             <h2 id="session-title">{setupStarted ? 'Your live space' : 'Ready when you are'}</h2>
           </div>
-          <span className={`status-pill ${systemStatus === 'active' ? 'is-active' : ''}`}>
-            <span aria-hidden="true" className="status-dot" />
-            {systemStatus === 'active' ? 'Listening' : 'Private'}
-          </span>
+          <div className="widget-actions">
+            <span className={`status-pill ${systemStatus === 'active' ? 'is-active' : ''}`}>
+              <span aria-hidden="true" className="status-dot" />
+              {systemStatus === 'active' ? 'Listening' : 'Private'}
+            </span>
+            <button
+              aria-expanded={settingsOpen}
+              className="settings-button"
+              type="button"
+              onClick={() => setSettingsOpen((isOpen) => !isOpen)}
+            >
+              Settings
+            </button>
+          </div>
         </div>
+
+        {settingsOpen && (
+          <section className="settings-panel" aria-label="Session settings">
+            <div className="settings-heading">
+              <div>
+                <span className="source-kicker">LANGUAGES</span>
+                <strong>Keep both sides clear</strong>
+              </div>
+              <div className="direction-summary">
+                <span>{incomingDirection}</span>
+                <span>{outgoingDirection}</span>
+              </div>
+            </div>
+            <div className="language-grid">
+              <label>
+                <span>They speak</span>
+                <select value={theirLanguage} onChange={(event) => setTheirLanguage(event.target.value as SupportedLanguage)}>
+                  <option value="en">English</option>
+                  <option value="th">Thai</option>
+                </select>
+              </label>
+              <label>
+                <span>I speak</span>
+                <select value={myLanguage} onChange={(event) => setMyLanguage(event.target.value as SupportedLanguage)}>
+                  <option value="th">Thai</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
+            </div>
+            <div className="shortcut-row">
+              <div>
+                <span className="source-kicker">PUSH TO TALK</span>
+                <strong>{shortcut ? `Shortcut ${shortcut}` : 'Hold the widget button'}</strong>
+                <span>Browser shortcut works while WA-NGAI is focused.</span>
+              </div>
+              <button
+                aria-label={shortcut ? `Shortcut ${shortcut}` : 'Set shortcut'}
+                className="shortcut-button"
+                type="button"
+                onClick={() => setShortcutCapture(true)}
+                onKeyDown={captureShortcut}
+              >
+                {shortcutCapture ? 'Press a key' : shortcut ? shortcut : 'Set'}
+              </button>
+            </div>
+          </section>
+        )}
 
         {!setupStarted ? (
           <div className="welcome-state">
@@ -224,11 +314,11 @@ function App({
               <section className="ptt-panel" aria-labelledby="ptt-title">
                 <div className="ptt-copy">
                   <span className="source-kicker">THAI REPLY</span>
-                  <strong id="ptt-title">{pttActive ? 'Listening in Thai' : 'Hold to speak Thai'}</strong>
+                  <strong id="ptt-title">{pttActive ? `Listening in ${languageLabels[myLanguage]}` : `Hold to speak ${languageLabels[myLanguage]}`}</strong>
                   <span>{pttActive ? 'Release to finalize your reply.' : 'Your English reply will appear on the right.'}</span>
                 </div>
                 <button
-                  aria-label={pttActive ? 'Listening in Thai' : 'Hold to speak Thai'}
+                  aria-label={pttActive ? `Listening in ${languageLabels[myLanguage]}` : `Hold to speak ${languageLabels[myLanguage]}`}
                   className={`ptt-button ${pttActive ? 'is-active' : ''}`}
                   type="button"
                   onPointerCancel={stopPushToTalk}

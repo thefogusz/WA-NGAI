@@ -87,6 +87,23 @@ describe('WANGAI feasibility harness', () => {
     expect(screen.getByRole('button', { name: 'Hold to speak Thai' })).toBeVisible()
   })
 
+  it('lets the player choose languages and save a focused-window shortcut from compact settings', async () => {
+    const user = userEvent.setup()
+
+    render(<App capabilityReport={readyReport} mediaDevices={supportedMediaDevices as never} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.selectOptions(screen.getByLabelText('They speak'), 'th')
+    await user.selectOptions(screen.getByLabelText('I speak'), 'en')
+
+    expect(screen.getByText('Thai → English')).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Set shortcut' }))
+    await user.keyboard('v')
+
+    expect(screen.getByRole('button', { name: 'Shortcut V' })).toBeVisible()
+  })
+
   it('opens a compact floating widget only from an explicit user action', async () => {
     const user = userEvent.setup()
     const requestWindow = vi.fn().mockResolvedValue({
