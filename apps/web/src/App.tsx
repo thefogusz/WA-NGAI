@@ -187,6 +187,19 @@ function App({
     }
   }
 
+  const copyReply = async () => {
+    if (!replyTranslation || !navigator.clipboard) {
+      setNotice('Copy is not available in this browser.')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(replyTranslation)
+      setNotice('English reply copied.')
+    } catch {
+      setNotice('Could not copy the reply. Select it manually.')
+    }
+  }
+
   const canRequestCapture = report.canStartSession && Boolean(mediaDevices)
   const systemLabel =
     systemStatus === 'active' ? 'Listening to shared audio' : 'Game / Discord audio'
@@ -419,6 +432,7 @@ function App({
                 <span className="source-kicker">YOUR REPLY</span>
                 <strong>{pttActive ? '…' : replyTranslation ?? 'Ready when you are'}</strong>
                 {replyText && <span>{replyText}</span>}
+                {replyTranslation && <button className="copy-button" type="button" onClick={copyReply}>Copy English</button>}
               </div>
             )}
 

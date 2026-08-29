@@ -63,6 +63,7 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 .reply-preview { align-items: flex-end; background: #25272f; border-radius: 14px; display: grid; gap: 4px; justify-self: end; max-width: 80%; min-width: 176px; padding: 11px 13px; text-align: right; }
 .reply-preview strong { color: #eff0f4; font-size: 14px; }
 .reply-preview span:last-child, .incoming-preview span:last-child { color: #a9acb7; font-size: 12px; }
+.copy-button { background: transparent; border: 0; color: #7dd9a2; font-size: 11px; font-weight: 700; justify-self: end; min-height: 28px; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; }
 .incoming-preview { background: #25272f; border-radius: 14px; display: grid; gap: 4px; max-width: 80%; min-width: 176px; padding: 11px 13px; }
 .incoming-preview strong { color: #eff0f4; font-size: 14px; }
 .inline-note, .notice { color: #a5a7b1; font-size: 12px; line-height: 1.45; margin: 0; text-align: center; }
