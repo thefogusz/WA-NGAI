@@ -10,6 +10,7 @@ type ChunkedSttOptions = {
 
 const MIN_REQUEST_INTERVAL_MS = 6_000
 const MAX_CONTINUOUS_SPEECH_MS = 8_000
+const MAX_PENDING_SEGMENTS = 2
 
 const startDefaultDetector = (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile, onSpeechStart?: () => void) =>
   startSileroVad(stream, onSegment, undefined, profile, onSpeechStart)
@@ -100,6 +101,7 @@ export async function startChunkedStt(
   const enqueue = (blob: Blob) => {
     if (stopped || blob.size === 0) return
     queuedBlobs.push(blob)
+    if (queuedBlobs.length > MAX_PENDING_SEGMENTS) queuedBlobs.shift()
     void uploadNext()
   }
 

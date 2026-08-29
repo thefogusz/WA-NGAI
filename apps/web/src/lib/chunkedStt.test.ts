@@ -115,4 +115,41 @@ describe('startChunkedStt', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+
+  it('keeps only the two newest pending segments when transcription falls behind', async () => {
+    vi.useFakeTimers()
+    let resolveFirstUpload: ((response: Response) => void) | undefined
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveFirstUpload = resolve }))
+      .mockResolvedValue(new Response(JSON.stringify({ text: 'North gate.' }), { status: 200 }))
+    let onSegment: ((segment: Blob) => void) | undefined
+    const startDetector = vi.fn(async (_stream, emitSegment) => {
+      onSegment = emitSegment
+      return { stop: vi.fn().mockResolvedValue(undefined) }
+    })
+    vi.stubGlobal('MediaRecorder', FakeRecorder)
+    vi.stubGlobal('MediaStream', class { constructor() {} })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await startChunkedStt(
+      { getAudioTracks: () => [{}] } as unknown as MediaStream,
+      'en',
+      vi.fn(),
+      { sendingOnStart: true, startDetector },
+    )
+
+    onSegment?.(new Blob(['first'], { type: 'audio/wav' }))
+    await vi.advanceTimersByTimeAsync(0)
+    onSegment?.(new Blob(['stale'], { type: 'audio/wav' }))
+    onSegment?.(new Blob(['current'], { type: 'audio/wav' }))
+    onSegment?.(new Blob(['newest'], { type: 'audio/wav' }))
+
+    resolveFirstUpload?.(new Response(JSON.stringify({ text: 'North gate.' }), { status: 200 }))
+    await vi.advanceTimersByTimeAsync(6_000)
+    await vi.advanceTimersByTimeAsync(6_000)
+
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    await expect((fetchMock.mock.calls[1][1].body as Blob).text()).resolves.toBe('current')
+    await expect((fetchMock.mock.calls[2][1].body as Blob).text()).resolves.toBe('newest')
+  })
 })

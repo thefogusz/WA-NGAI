@@ -49,7 +49,8 @@ export async function requestSystemAudioCapture(
     throw new MissingSystemAudioTrackError()
   }
 
-  return { audioTracks, allTracks: stream.getTracks(), stream }
+  await stopSessionMedia(stream.getTracks().filter((track) => !audioTracks.includes(track)))
+  return { audioTracks, allTracks: audioTracks, stream }
 }
 
 export async function requestMicrophoneCapture(

@@ -21,6 +21,9 @@ describe('requestSystemAudioCapture', () => {
       expect.objectContaining({ audio: true, systemAudio: 'include', video: true }),
     )
     expect(capture.audioTracks).toEqual([audioTrack])
+    expect(capture.allTracks).toEqual([audioTrack])
+    expect(displayTrack.stop).toHaveBeenCalledOnce()
+    expect(audioTrack.stop).not.toHaveBeenCalled()
   })
 
   it('cleans up the selected surface when the browser returns no audio track', async () => {
