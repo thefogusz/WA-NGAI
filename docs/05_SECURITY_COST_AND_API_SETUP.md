@@ -76,6 +76,13 @@ Production uses an encrypted Worker secret. The browser receives only a short-li
 
 Provider-side processing and retention must be checked again against the current xAI terms before public beta.
 
+## Local development status
+
+- `apps/api` binds only to `127.0.0.1:8787` and accepts only the local Vite origins.
+- `POST /v1/translate` validates direction and a 500-character text limit before it calls xAI.
+- The key remains server-only. API errors are mapped to generic public messages and do not return provider detail.
+- This local proxy is deliberately not a public beta service: it has no end-user session/authentication, invite gate, or durable distributed rate limit. Those controls are required before deployment.
+
 ## Threats to test
 
 | Threat | Required mitigation |

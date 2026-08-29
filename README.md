@@ -37,6 +37,14 @@ These limits are validation gates, not hidden future problems.
 
 Goal 0 feasibility harness is implemented in `apps/web`: compact no-key setup UI, permission-gated game-audio and microphone capture primitives, session cleanup, and a 360 × 220 Document Picture-in-Picture widget. It does not yet stream audio to xAI or call Grok.
 
+The local API boundary is implemented in `apps/api`. It reads `XAI_API_KEY` only from the ignored root `.env.local` file and exposes a local-only `POST /v1/translate` proxy. It is not a public deployment and does not yet have user authentication or live audio streaming.
+
+## Run locally
+
+1. In `apps/api`, run `npm run dev`.
+2. In `apps/web`, run `npm run dev`.
+3. Open the Vite URL. Development requests under `/v1` proxy to the local API on port 8787.
+
 ## Owner decision requested
 
 Run the manual browser matrix with a real Chrome/Edge permission grant before moving to live transcription.
