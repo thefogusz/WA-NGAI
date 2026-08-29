@@ -37,7 +37,7 @@ These limits are validation gates, not hidden future problems.
 
 The local MVP is implemented in `apps/web`: permission-gated game-audio and microphone capture, PCM16 streaming speech-to-text, final-utterance translation, right-aligned reply bubbles with explicit Copy, push-to-talk, and a 360 × 220 Document Picture-in-Picture widget.
 
-The local API boundary is implemented in `apps/api`. It reads `XAI_API_KEY` only from the ignored root `.env.local` file and exposes a local-only `POST /v1/translate` proxy. It is not a public deployment and does not yet have user authentication or live audio streaming.
+The local API boundary is implemented in `apps/api`. It reads `XAI_API_KEY` only from the ignored root `.env.local` file, exposes a local-only `POST /v1/translate` proxy, and bridges local `/v1/stt` WebSocket streams to xAI. It is not a public deployment and does not yet have user authentication, rate limits, or a public hosting layer.
 
 ## Run locally
 
@@ -45,6 +45,6 @@ The local API boundary is implemented in `apps/api`. It reads `XAI_API_KEY` only
 2. In `apps/web`, run `npm run dev`.
 3. Open the Vite URL. Development requests under `/v1` proxy to the local API on port 8787.
 
-## Owner decision requested
+## Remaining owner validation
 
-Run the manual browser matrix with a real Chrome/Edge permission grant before moving to live transcription.
+Run the manual browser matrix with a real Chrome/Edge tab-audio and microphone permission grant. The local xAI bridge and translation call are connected, but physical audio quality must be checked with the owner’s actual devices and game/Discord setup.
