@@ -83,7 +83,9 @@ describe('startChunkedStt', () => {
     )
 
     onSpeechStart?.()
-    await vi.advanceTimersByTimeAsync(6_500)
+    await vi.advanceTimersByTimeAsync(7_999)
+    expect(flush).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1)
     expect(flush).toHaveBeenCalledOnce()
   })
 

@@ -9,7 +9,7 @@ type ChunkedSttOptions = {
 }
 
 const MIN_REQUEST_INTERVAL_MS = 6_000
-const MAX_CONTINUOUS_SPEECH_MS = 6_500
+const MAX_CONTINUOUS_SPEECH_MS = 8_000
 
 const startDefaultDetector = (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile, onSpeechStart?: () => void) =>
   startSileroVad(stream, onSegment, undefined, profile, onSpeechStart)

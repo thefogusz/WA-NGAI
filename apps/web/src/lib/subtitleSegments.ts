@@ -1,8 +1,8 @@
 type SubtitleLanguage = 'en' | 'th'
 
 const MAX_CHARACTERS: Record<SubtitleLanguage, number> = {
-  en: 96,
-  th: 48,
+  en: 160,
+  th: 80,
 }
 
 function languageFor(text: string, language?: SubtitleLanguage): SubtitleLanguage {
@@ -48,6 +48,24 @@ function splitSentence(sentence: string, maximum: number, locale: SubtitleLangua
   return splitAtWordBoundaries(sentence, maximum, locale)
 }
 
+function packCaptionLines(segments: string[], maximum: number): string[] {
+  const captions: string[] = []
+  let current = ''
+
+  for (const segment of segments) {
+    const next = current ? `${current} ${segment}` : segment
+    if (current && next.length > maximum) {
+      captions.push(current)
+      current = segment
+      continue
+    }
+    current = next
+  }
+
+  if (current) captions.push(current)
+  return captions
+}
+
 export function splitSubtitleSegments(transcript: string, language?: SubtitleLanguage): string[] {
   const text = transcript.replace(/\s+/g, ' ').trim()
   if (!text) return []
@@ -56,7 +74,8 @@ export function splitSubtitleSegments(transcript: string, language?: SubtitleLan
   const maximum = MAX_CHARACTERS[locale]
   if (locale === 'th') return splitAtWordBoundaries(text, maximum, locale)
 
-  return (text.match(/[^.!?…]+[.!?…]?/g) ?? [text])
+  const sentencePieces = (text.match(/[^.!?…]+[.!?…]?/g) ?? [text])
     .flatMap((sentence) => splitSentence(sentence.trim(), maximum, locale))
     .filter(Boolean)
+  return packCaptionLines(sentencePieces, maximum)
 }
