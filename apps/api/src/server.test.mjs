@@ -18,11 +18,12 @@ async function withServer(handler, run) {
   }
 }
 
-async function withGroqServer(handler, run) {
+async function withGroqServer(handler, run, rateGuard) {
   const server = createApiServer({
     apiKey: 'server-only-xai-key',
     groqApiKey: 'server-only-groq-key',
     groqTranscribe: handler,
+    rateGuard,
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const { port } = server.address()
@@ -95,4 +96,28 @@ test('accepts a local bounded audio chunk and returns only Groq transcript text'
     assert.equal(response.status, 200)
     assert.deepEqual(await response.json(), { text: 'ไปทางเหนือ' })
   })
+})
+
+test('returns a clear rate-limit response without calling Groq', async () => {
+  let providerCalled = false
+  await withGroqServer(async () => {
+    providerCalled = true
+    return { text: 'should not happen' }
+  }, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/v1/stt/chunk`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'audio/webm',
+        origin: 'http://127.0.0.1:5173',
+        'x-wa-ngai-language': 'en',
+      },
+      body: Buffer.from([1]),
+    })
+
+    assert.equal(response.status, 429)
+    assert.deepEqual(await response.json(), {
+      error: { code: 'RATE_LIMITED', message: 'Speech is busy. Try again in a moment.' },
+    })
+    assert.equal(providerCalled, false)
+  }, { consume: () => false })
 })

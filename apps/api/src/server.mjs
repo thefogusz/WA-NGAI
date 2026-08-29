@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url'
 
 import { attachSttBridge } from './sttBridge.mjs'
 import { transcribeWithGroq } from './groqStt.mjs'
+import { createRateGuard } from './rateGuard.mjs'
 import { translateWithXai } from './translation.mjs'
 
 const MAX_BODY_BYTES = 4 * 1024
@@ -68,7 +69,7 @@ function parseGlossary(value) {
   }
 }
 
-export function createApiServer({ apiKey, groqApiKey, model = 'grok-4.3', translate = translateWithXai, groqTranscribe = transcribeWithGroq } = {}) {
+export function createApiServer({ apiKey, groqApiKey, model = 'grok-4.3', translate = translateWithXai, groqTranscribe = transcribeWithGroq, rateGuard = createRateGuard() } = {}) {
   const server = createServer(async (request, response) => {
     const origin = request.headers.origin
 
@@ -93,6 +94,12 @@ export function createApiServer({ apiKey, groqApiKey, model = 'grok-4.3', transl
     if (request.method === 'POST' && request.url === '/v1/stt/chunk') {
       if (!groqApiKey) {
         sendJson(response, 503, { error: { code: 'SERVICE_NOT_CONFIGURED', message: 'Speech service is not configured.' } }, origin)
+        return
+      }
+      if (!rateGuard.consume()) {
+        sendJson(response, 429, {
+          error: { code: 'RATE_LIMITED', message: 'Speech is busy. Try again in a moment.' },
+        }, origin)
         return
       }
       try {
