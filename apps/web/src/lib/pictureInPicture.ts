@@ -3,8 +3,12 @@ export type PictureInPictureApi = {
 }
 
 export type FloatingWidgetSnapshot = {
+  incomingText?: string
+  incomingTranslation?: string
   systemAudioActive: boolean
   microphoneReady: boolean
+  replyText?: string
+  replyTranslation?: string
 }
 
 const widgetStyles = `
@@ -17,6 +21,7 @@ const widgetStyles = `
   .dot { background: #62ce90; border-radius: 50%; box-shadow: 0 0 0 3px rgba(98, 206, 144, .12); height: 7px; width: 7px; }
   .message { background: #22242c; border: 1px solid rgba(255, 255, 255, .06); border-radius: 13px; color: #f8f8fb; font-size: 14px; font-weight: 650; line-height: 1.35; margin-top: 13px; padding: 11px 12px; }
   .translation { color: #a8aab4; display: block; font-size: 12px; font-weight: 400; margin-top: 4px; }
+  .reply { background: #1d2922; margin-left: 42px; text-align: right; }
   .footer { color: #878a95; display: flex; font-size: 11px; justify-content: space-between; margin-top: 12px; }
 `
 
@@ -33,12 +38,29 @@ export async function openFloatingWidget(
   root.dataset.wangaiWidget = 'true'
   root.innerHTML = `
     <div class="topline"><span>WA-NGAI <span class="brand-thai">ว่าไง</span></span><span class="live"><span class="dot"></span>${snapshot.systemAudioActive ? 'Listening' : 'Ready'}</span></div>
-    <div class="message">${snapshot.systemAudioActive ? 'Listening to shared audio' : 'Waiting for shared audio'}<span class="translation">${snapshot.systemAudioActive ? 'แปลข้อความเมื่อการเชื่อมต่อพร้อม' : 'เริ่มจากกดแชร์เสียงเกม'}</span></div>
+    <div class="message"><strong data-wangai-incoming>${snapshot.systemAudioActive ? 'Listening to shared audio' : 'Waiting for shared audio'}</strong><span class="translation" data-wangai-incoming-translation>${snapshot.systemAudioActive ? 'แปลข้อความเมื่อการเชื่อมต่อพร้อม' : 'เริ่มจากกดแชร์เสียงเกม'}</span></div>
+    <div class="message reply" data-wangai-reply hidden><strong></strong><span class="translation"></span></div>
     <div class="footer"><span>${snapshot.microphoneReady ? 'Mic ready' : 'Mic off'}</span><span>External only</span></div>
   `
 
-  document.title = 'WANGAI'
+  document.title = 'WA-NGAI'
   document.body.replaceChildren(style, root)
+  updateFloatingWidget(pipWindow, snapshot)
 
   return pipWindow
+}
+
+export function updateFloatingWidget(pipWindow: Window, snapshot: FloatingWidgetSnapshot): void {
+  const document = pipWindow.document
+  const incoming = document.querySelector<HTMLElement>('[data-wangai-incoming]')
+  const incomingTranslation = document.querySelector<HTMLElement>('[data-wangai-incoming-translation]')
+  const reply = document.querySelector<HTMLElement>('[data-wangai-reply]')
+
+  if (incoming && snapshot.incomingText) incoming.textContent = snapshot.incomingText
+  if (incomingTranslation && snapshot.incomingTranslation) incomingTranslation.textContent = snapshot.incomingTranslation
+  if (reply && snapshot.replyTranslation) {
+    reply.hidden = false
+    reply.querySelector('strong')!.textContent = snapshot.replyTranslation
+    reply.querySelector('.translation')!.textContent = snapshot.replyText ?? ''
+  }
 }

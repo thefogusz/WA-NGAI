@@ -11,7 +11,7 @@ import {
   type BrowserCapabilityReport,
 } from './lib/capabilities'
 import { stopSessionMedia, type SessionTrack } from './lib/mediaLifecycle'
-import { openFloatingWidget, type PictureInPictureApi } from './lib/pictureInPicture'
+import { openFloatingWidget, updateFloatingWidget, type PictureInPictureApi } from './lib/pictureInPicture'
 import { startLiveStt, type LiveSttSession, type TranscriptEvent } from './lib/liveStt'
 
 type AppMediaDevices = Pick<MediaDevices, 'getDisplayMedia' | 'getUserMedia'>
@@ -91,6 +91,7 @@ function App({
   const [replyTranslation, setReplyTranslation] = useState<string | undefined>()
   const systemSttRef = useRef<LiveSttSession | null>(null)
   const microphoneSttRef = useRef<LiveSttSession | null>(null)
+  const pipWindowRef = useRef<Window | null>(null)
   const [notice, setNotice] = useState<string | undefined>()
 
   const startSystemAudio = async () => {
@@ -177,8 +178,12 @@ function App({
     }
 
     try {
-      await openFloatingWidget(pictureInPictureApi, {
+      pipWindowRef.current = await openFloatingWidget(pictureInPictureApi, {
+        incomingText,
+        incomingTranslation,
         microphoneReady: microphoneStatus === 'active',
+        replyText,
+        replyTranslation,
         systemAudioActive: systemStatus === 'active',
       })
       setNotice(undefined)
@@ -240,13 +245,14 @@ function App({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!shortcutCapture && !event.repeat && event.key.toUpperCase() === shortcut) {
         event.preventDefault()
+        microphoneSttRef.current?.setSending(true)
         setPttActive(true)
       }
     }
     const handleKeyUp = (event: KeyboardEvent) => {
       if (!shortcutCapture && event.key.toUpperCase() === shortcut) {
         event.preventDefault()
-        setPttActive(false)
+        stopPushToTalk()
       }
     }
 
@@ -257,6 +263,19 @@ function App({
       window.removeEventListener('keyup', handleKeyUp)
     }
   }, [microphoneStatus, setupStarted, shortcut, shortcutCapture])
+
+  useEffect(() => {
+    if (pipWindowRef.current && !pipWindowRef.current.closed) {
+      updateFloatingWidget(pipWindowRef.current, {
+        incomingText,
+        incomingTranslation,
+        microphoneReady: microphoneStatus === 'active',
+        replyText,
+        replyTranslation,
+        systemAudioActive: systemStatus === 'active',
+      })
+    }
+  }, [incomingText, incomingTranslation, microphoneStatus, replyText, replyTranslation, systemStatus])
 
   return (
     <main className="app-shell">
