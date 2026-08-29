@@ -16,13 +16,22 @@ test('sends a bounded English-to-Thai translation request without exposing the k
         )
       },
     },
-    { sourceLanguage: 'en', targetLanguage: 'th', text: 'Go to the north gate.' },
+    {
+      sourceLanguage: 'en',
+      targetLanguage: 'th',
+      text: 'Go to the north gate.',
+      context: ['We need to regroup.', 'The north gate is open.'],
+    },
   )
 
   assert.equal(result.text, 'ไปที่ประตูเหนือ')
   assert.equal(fetchCalls[0].url, 'https://api.x.ai/v1/chat/completions')
   assert.equal(fetchCalls[0].options.headers.Authorization, 'Bearer test-key')
   assert.equal(JSON.parse(fetchCalls[0].options.body).model, 'grok-4.3')
+  assert.deepEqual(JSON.parse(JSON.parse(fetchCalls[0].options.body).messages[1].content).context, [
+    'We need to regroup.',
+    'The north gate is open.',
+  ])
 })
 
 test('rejects an empty or oversized translation request before it reaches xAI', async () => {
