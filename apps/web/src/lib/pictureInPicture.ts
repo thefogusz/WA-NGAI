@@ -26,7 +26,9 @@ const widgetStyles = `
   :lang(th) { font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif; }
   .translation:lang(th), .message strong:lang(th) { color: #d1d4de; font-size: 13px; font-weight: 500; line-height: 1.65; }
   .pending { border-left: 2px solid rgba(117, 213, 160, .72); color: #d7d9e0; padding-left: 10px; }
-  .reply { background: #1d2922; margin-left: 42px; text-align: right; }
+  .reply { background: #1d2922; display: table; margin-left: auto; max-width: calc(100% - 42px); text-align: right; }
+  .reply.is-updating { animation: reply-refresh 220ms ease-out; }
+  @keyframes reply-refresh { from { opacity: .35; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   .footer { display: flex; font-size: 11px; justify-content: space-between; margin-top: 12px; }
   .footer-status { align-items: center; color: #858995; display: inline-flex; gap: 6px; }
   .footer-status i { background: #51545f; border-radius: 50%; height: 6px; width: 6px; }
@@ -76,10 +78,21 @@ export function updateFloatingWidget(pipWindow: Window, snapshot: FloatingWidget
     pending.hidden = !snapshot.incomingPendingText
     if (snapshot.incomingPendingText) setWidgetText(pending.querySelector('strong')!, snapshot.incomingPendingText)
   }
-  if (reply && (snapshot.replyText || snapshot.replyTranslation)) {
-    reply.hidden = false
-    setWidgetText(reply.querySelector('strong')!, snapshot.replyText ?? snapshot.replyTranslation ?? '')
-    setWidgetText(reply.querySelector('.translation')!, snapshot.replyTranslation ?? '')
+  if (reply) {
+    const hasReply = Boolean(snapshot.replyText || snapshot.replyTranslation)
+    reply.hidden = !hasReply
+    if (hasReply) {
+      const replyKey = `${snapshot.replyText ?? ''}\u0000${snapshot.replyTranslation ?? ''}`
+      const replyChanged = reply.dataset.wangaiReplyKey !== replyKey
+      setWidgetText(reply.querySelector('strong')!, snapshot.replyText ?? snapshot.replyTranslation ?? '')
+      setWidgetText(reply.querySelector('.translation')!, snapshot.replyTranslation ?? '')
+      if (replyChanged) {
+        reply.dataset.wangaiReplyKey = replyKey
+        reply.classList.remove('is-updating')
+        void reply.offsetWidth
+        reply.classList.add('is-updating')
+      }
+    }
   }
   if (microphoneStatus) setFooterStatus(microphoneStatus, 'Mic', snapshot.microphoneReady)
   if (audioStatus) setFooterStatus(audioStatus, 'Audio', snapshot.systemAudioActive)

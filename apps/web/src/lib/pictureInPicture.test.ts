@@ -70,16 +70,30 @@ describe('openFloatingWidget', () => {
     expect(reply?.textContent).toContain('On my way.')
     expect(reply?.textContent).not.toContain('Translation')
     expect(reply?.hasAttribute('hidden')).toBe(false)
+    expect(pipDocument.querySelector('style')?.textContent).toContain('display: table; margin-left: auto; max-width: calc(100% - 42px);')
 
     updateFloatingWidget(pipWindow, {
       incomingText: 'Bridge clear.',
-      incomingPendingText: 'I am crossing now.',
+      incomingPendingText: 'Enemy on the left.',
       microphoneReady: true,
+      replyText: 'กำลังไป',
+      replyTranslation: 'On my way.',
       systemAudioActive: true,
     })
     expect(pipDocument.querySelector('[data-wangai-incoming]')?.textContent).toBe('Bridge clear.')
-    expect(pipDocument.querySelector('[data-wangai-incoming-translation]')?.textContent).toBe('')
-    expect(pipDocument.querySelector('[data-wangai-pending]')?.textContent).toContain('I am crossing now.')
+    expect(pipDocument.querySelector('[data-wangai-pending]')?.textContent).toContain('Enemy on the left.')
+    expect(pipDocument.querySelector('[data-wangai-pending]')?.hasAttribute('hidden')).toBe(false)
+    expect(reply?.hasAttribute('hidden')).toBe(false)
+
+    updateFloatingWidget(pipWindow, {
+      microphoneReady: true,
+      replyText: 'ไปทางซ้าย',
+      replyTranslation: 'Go left.',
+      systemAudioActive: true,
+    })
+    expect(pipDocument.querySelectorAll('[data-wangai-reply]')).toHaveLength(1)
+    expect(reply?.querySelector('strong')?.textContent).toBe('ไปทางซ้าย')
+    expect(reply?.classList.contains('is-updating')).toBe(true)
 
     updateFloatingWidget(pipWindow, {
       microphoneReady: false,

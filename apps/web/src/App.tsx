@@ -174,7 +174,7 @@ function App({
           if (event.is_final && event.speech_final) {
             await commitIncomingTranscript(event.text)
           } else {
-            setIncomingPendingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
+            setIncomingPendingText(splitSubtitleSegments(event.text, theirLanguage).at(-1) ?? event.text)
           }
         }, { sendingOnStart: true, vadProfile })
       } else if (typeof window.AudioContext !== 'undefined') {
@@ -185,7 +185,7 @@ function App({
             return
           }
           if (event.type !== 'transcript.partial' || !event.text) return
-          setIncomingPendingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
+          setIncomingPendingText(splitSubtitleSegments(event.text, theirLanguage).at(-1) ?? event.text)
           if (event.is_final && event.speech_final) {
             await commitIncomingTranscript(event.text)
           }
