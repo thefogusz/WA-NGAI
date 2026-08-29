@@ -102,4 +102,32 @@ describe('openFloatingWidget', () => {
     expect(pipDocument.querySelector('[data-wangai-mic-status]')?.textContent).toContain('Mic off')
     expect(pipDocument.querySelector('[data-wangai-audio-status]')?.textContent).toContain('Audio off')
   })
+
+  it('keeps the previous partner translation above the latest live slot', async () => {
+    const pipDocument = document.implementation.createHTMLDocument('WA-NGAI')
+    const pipWindow = { document: pipDocument, closed: false } as unknown as Window
+
+    await openFloatingWidget(
+      { requestWindow: vi.fn().mockResolvedValue(pipWindow) },
+      { microphoneReady: true, systemAudioActive: true },
+    )
+    updateFloatingWidget(pipWindow, {
+      incomingPreviousText: 'Meet at the north gate.',
+      incomingPreviousTranslation: 'เจอกันที่ประตูเหนือ',
+      incomingPendingText: 'The bridge is clear.',
+      microphoneReady: true,
+      systemAudioActive: true,
+    })
+
+    const previous = pipDocument.querySelector<HTMLElement>('[data-wangai-previous]')
+    const current = pipDocument.querySelector<HTMLElement>('[data-wangai-incoming]')
+    const pending = pipDocument.querySelector<HTMLElement>('[data-wangai-pending]')
+    expect(previous?.textContent).toContain('Meet at the north gate.')
+    expect(previous?.textContent).toContain('เจอกันที่ประตูเหนือ')
+    expect(previous?.hasAttribute('hidden')).toBe(false)
+    expect(pending?.textContent).toContain('The bridge is clear.')
+    expect(pending?.hasAttribute('hidden')).toBe(false)
+    expect(current?.closest('.message')?.hasAttribute('hidden')).toBe(true)
+    expect(pipDocument.querySelectorAll('.message:not([hidden])')).toHaveLength(2)
+  })
 })

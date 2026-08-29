@@ -99,6 +99,8 @@ function App({
   const [vadProfile, setVadProfile] = useState<VadProfile>('game')
   const [incomingText, setIncomingText] = useState<string | undefined>()
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
+  const [incomingPreviousText, setIncomingPreviousText] = useState<string | undefined>()
+  const [incomingPreviousTranslation, setIncomingPreviousTranslation] = useState<string | undefined>()
   const [incomingPendingText, setIncomingPendingText] = useState<string | undefined>()
   const [incomingAudioLevel, setIncomingAudioLevel] = useState(0)
   const [incomingStage, setIncomingStage] = useState<IncomingStage>('listening')
@@ -111,6 +113,7 @@ function App({
   const incomingHistoryRef = useRef<string[]>([])
   const outgoingHistoryRef = useRef<string[]>([])
   const incomingTranslationRequestRef = useRef(0)
+  const incomingCommittedRef = useRef<TranslationResult | undefined>(undefined)
   const outgoingTranslationRequestRef = useRef(0)
   const pipWindowRef = useRef<Window | null>(null)
   const [pipWindowRevision, setPipWindowRevision] = useState(0)
@@ -121,11 +124,17 @@ function App({
       const context = incomingHistoryRef.current
       incomingHistoryRef.current = appendCommittedText(context, subtitle)
       const requestId = ++incomingTranslationRequestRef.current
+      const previous = incomingCommittedRef.current
+      if (previous) {
+        setIncomingPreviousText(previous.sourceText)
+        setIncomingPreviousTranslation(previous.text)
+      }
       setIncomingPendingText(subtitle)
       setIncomingStage('translating')
       try {
         const translation = await translateText(subtitle, theirLanguage, theirLanguage === 'en' ? 'th' : 'en', context)
         if (requestId === incomingTranslationRequestRef.current) {
+          incomingCommittedRef.current = translation
           setIncomingText(translation.sourceText)
           setIncomingTranslation(translation.text)
           setIncomingPendingText(undefined)
@@ -286,6 +295,7 @@ function App({
     setIncomingAudioLevel(0)
     setIncomingStage('listening')
     incomingHistoryRef.current = []
+    incomingCommittedRef.current = undefined
     outgoingHistoryRef.current = []
     incomingTranslationRequestRef.current += 1
     outgoingTranslationRequestRef.current += 1
@@ -301,6 +311,8 @@ function App({
 
     try {
       pipWindowRef.current = await openFloatingWidget(pictureInPictureApi, {
+        incomingPreviousText,
+        incomingPreviousTranslation,
         incomingText,
         incomingTranslation,
         incomingPendingText,
@@ -397,6 +409,8 @@ function App({
   useEffect(() => {
     if (pipWindowRef.current && !pipWindowRef.current.closed) {
       updateFloatingWidget(pipWindowRef.current, {
+        incomingPreviousText,
+        incomingPreviousTranslation,
         incomingText,
         incomingTranslation,
         incomingPendingText,
@@ -407,7 +421,7 @@ function App({
         systemAudioActive: systemStatus === 'active',
       })
     }
-  }, [incomingPendingText, incomingText, incomingTranslation, microphoneStatus, pttActive, replyText, replyTranslation, systemStatus])
+  }, [incomingPendingText, incomingPreviousText, incomingPreviousTranslation, incomingText, incomingTranslation, microphoneStatus, pttActive, replyText, replyTranslation, systemStatus])
 
   return (
     <main className="app-shell">
