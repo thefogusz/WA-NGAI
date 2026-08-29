@@ -29,6 +29,7 @@ type AppProps = {
 
 type SupportedLanguage = 'en' | 'th'
 type IncomingStage = 'listening' | 'transcribing' | 'translating'
+type TranslationResult = { text: string, sourceText: string }
 
 const languageLabels: Record<SupportedLanguage, string> = {
   en: 'English',
@@ -69,16 +70,16 @@ function describeCaptureError(error: unknown, fallback: string): string {
   return fallback
 }
 
-async function translateText(text: string, sourceLanguage: SupportedLanguage, targetLanguage: SupportedLanguage, context: string[] = []): Promise<string> {
+async function translateText(text: string, sourceLanguage: SupportedLanguage, targetLanguage: SupportedLanguage, context: string[] = []): Promise<TranslationResult> {
   const response = await fetch('/v1/translate', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ sourceLanguage, targetLanguage, text, context }),
   })
   if (!response.ok) throw new Error('Translation unavailable')
-  const result = await response.json() as { text?: string }
+  const result = await response.json() as { text?: string, sourceText?: string }
   if (!result.text) throw new Error('Translation unavailable')
-  return result.text
+  return { text: result.text, sourceText: result.sourceText?.trim() || text }
 }
 
 function App({
@@ -158,7 +159,10 @@ function App({
             setIncomingStage('translating')
             try {
               const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
-              if (requestId === incomingTranslationRequestRef.current) setIncomingTranslation(translation)
+              if (requestId === incomingTranslationRequestRef.current) {
+                setIncomingText(translation.sourceText)
+                setIncomingTranslation(translation.text)
+              }
             } catch { setNotice('Translation is temporarily unavailable.') }
             finally { if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening') }
           }
@@ -179,7 +183,10 @@ function App({
             setIncomingStage('translating')
             try {
               const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
-              if (requestId === incomingTranslationRequestRef.current) setIncomingTranslation(translation)
+              if (requestId === incomingTranslationRequestRef.current) {
+                setIncomingText(translation.sourceText)
+                setIncomingTranslation(translation.text)
+              }
             } catch { setNotice('Translation is temporarily unavailable.') }
             finally { if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening') }
           }
@@ -226,8 +233,9 @@ function App({
             try {
               const translation = await translateText(event.text, myLanguage, outgoingLanguage, context)
               if (requestId === outgoingTranslationRequestRef.current) {
-                setReplyTranslation(translation)
-                setReplyDraft(translation)
+                setReplyText(translation.sourceText)
+                setReplyTranslation(translation.text)
+                setReplyDraft(translation.text)
               }
             } catch { setNotice('Translation is temporarily unavailable.') }
           }
@@ -244,8 +252,9 @@ function App({
             try {
               const translation = await translateText(event.text, myLanguage, outgoingLanguage, context)
               if (requestId === outgoingTranslationRequestRef.current) {
-                setReplyTranslation(translation)
-                setReplyDraft(translation)
+                setReplyText(translation.sourceText)
+                setReplyTranslation(translation.text)
+                setReplyDraft(translation.text)
               }
             } catch { setNotice('Translation is temporarily unavailable.') }
           }

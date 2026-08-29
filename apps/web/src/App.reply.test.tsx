@@ -24,7 +24,10 @@ describe('reply composer', () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
     vi.stubGlobal('AudioContext', class {})
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ text: 'I am coming.' }), { status: 200 })))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      text: 'Walk to the left.',
+      sourceText: 'เดินไปทางซ้าย',
+    }), { status: 200 })))
 
     render(
       <App
@@ -38,6 +41,7 @@ describe('reply composer', () => {
 
     await user.click(screen.getByRole('button', { name: 'Start session' }))
     await user.click(screen.getByRole('button', { name: 'Enable microphone' }))
+    expect(await screen.findByText('เดินไปทางซ้าย')).toBeInTheDocument()
     const editor = await screen.findByRole('textbox', { name: 'English reply' })
     await user.clear(editor)
     await user.type(editor, 'I am on my way.')
