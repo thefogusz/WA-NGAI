@@ -114,9 +114,10 @@ function App({
 
     setNotice(undefined)
     setSystemStatus('requesting')
+    let capture: Awaited<ReturnType<typeof requestSystemAudioCapture>> | undefined
 
     try {
-      const capture = await requestSystemAudioCapture({
+      capture = await requestSystemAudioCapture({
         getDisplayMedia: (options) => mediaDevices.getDisplayMedia(options),
       })
       setSystemTracks(capture.allTracks)
@@ -139,6 +140,10 @@ function App({
       }
       setSystemStatus('active')
     } catch (error) {
+      if (capture) {
+        await stopSessionMedia(capture.allTracks)
+        setSystemTracks([])
+      }
       setSystemStatus('error')
       setNotice(describeCaptureError(error, 'Could not start shared audio. Try again.'))
     }
@@ -153,9 +158,10 @@ function App({
 
     setNotice(undefined)
     setMicrophoneStatus('requesting')
+    let capture: Awaited<ReturnType<typeof requestMicrophoneCapture>> | undefined
 
     try {
-      const capture = await requestMicrophoneCapture({
+      capture = await requestMicrophoneCapture({
         getUserMedia: (options) => mediaDevices.getUserMedia(options),
       })
       setMicrophoneTracks(capture.allTracks)
@@ -188,6 +194,10 @@ function App({
       }
       setMicrophoneStatus('active')
     } catch (error) {
+      if (capture) {
+        await stopSessionMedia(capture.allTracks)
+        setMicrophoneTracks([])
+      }
       setMicrophoneStatus('error')
       setNotice(describeCaptureError(error, 'Could not start the microphone. Try again.'))
     }
