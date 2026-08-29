@@ -1,6 +1,7 @@
 import { createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 
+import { attachSttBridge } from './sttBridge.mjs'
 import { translateWithXai } from './translation.mjs'
 
 const MAX_BODY_BYTES = 4 * 1024
@@ -47,7 +48,7 @@ function isAllowedOrigin(origin) {
 }
 
 export function createApiServer({ apiKey, model = 'grok-4.3', translate = translateWithXai } = {}) {
-  return createServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     const origin = request.headers.origin
 
     if (!isAllowedOrigin(origin)) {
@@ -99,6 +100,8 @@ export function createApiServer({ apiKey, model = 'grok-4.3', translate = transl
       sendJson(response, status, { error: { code, message } }, origin)
     }
   })
+  attachSttBridge(server, { apiKey, isAllowedOrigin })
+  return server
 }
 
 const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href

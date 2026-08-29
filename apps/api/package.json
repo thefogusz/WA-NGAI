@@ -6,5 +6,8 @@
     "dev": "node --env-file=../../.env.local src/server.mjs",
     "start": "node --env-file=../../.env.local src/server.mjs",
     "test": "node --test"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
   }
 }
