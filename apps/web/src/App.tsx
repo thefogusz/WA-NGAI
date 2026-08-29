@@ -398,7 +398,7 @@ function App({
             </div>
 
             {incomingText && (
-              <div className="incoming-preview" aria-live="polite">
+              <div className="incoming-preview" aria-live="polite" key={incomingText}>
                 <span className="source-kicker">THEM</span>
                 <strong>{incomingText}</strong>
                 {incomingTranslation && <span>{incomingTranslation}</span>}
@@ -447,7 +447,7 @@ function App({
             )}
 
             {microphoneStatus === 'active' && (
-              <div className="reply-preview" aria-live="polite">
+              <div className="reply-preview" aria-live="polite" key={replyTranslation ?? 'ready'}>
                 <span className="source-kicker">YOUR REPLY</span>
                 <strong>{pttActive ? '…' : replyTranslation ?? 'Ready when you are'}</strong>
                 {replyText && <span>{replyText}</span>}
