@@ -99,6 +99,7 @@ function App({
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
   const [replyText, setReplyText] = useState<string | undefined>()
   const [replyTranslation, setReplyTranslation] = useState<string | undefined>()
+  const [replyDraft, setReplyDraft] = useState<string | undefined>()
   const systemSttRef = useRef<LiveSttSession | null>(null)
   const microphoneSttRef = useRef<LiveSttSession | null>(null)
   const pipWindowRef = useRef<Window | null>(null)
@@ -162,16 +163,26 @@ function App({
         microphoneSttRef.current = await startChunkedStt(capture.stream as MediaStream, myLanguage, async (event: TranscriptEvent) => {
           if (!event.text) return
           setReplyText(event.text)
+          setReplyDraft(undefined)
           if (event.is_final && event.speech_final) {
-            try { setReplyTranslation(await translateText(event.text, myLanguage, outgoingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+            try {
+              const translation = await translateText(event.text, myLanguage, outgoingLanguage)
+              setReplyTranslation(translation)
+              setReplyDraft(translation)
+            } catch { setNotice('Translation is temporarily unavailable.') }
           }
         }, { glossary: parseGlossary(gameGlossary) })
       } else if (typeof window.AudioContext !== 'undefined') {
         microphoneSttRef.current = await startLiveStt(capture.stream as MediaStream, myLanguage, async (event: TranscriptEvent) => {
           if (event.type !== 'transcript.partial' || !event.text) return
           setReplyText(event.text)
+          setReplyDraft(undefined)
           if (event.is_final && event.speech_final) {
-            try { setReplyTranslation(await translateText(event.text, myLanguage, outgoingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+            try {
+              const translation = await translateText(event.text, myLanguage, outgoingLanguage)
+              setReplyTranslation(translation)
+              setReplyDraft(translation)
+            } catch { setNotice('Translation is temporarily unavailable.') }
           }
         })
       }
@@ -219,12 +230,12 @@ function App({
   }
 
   const copyReply = async () => {
-    if (!replyTranslation || !navigator.clipboard) {
+    if (!replyDraft || !navigator.clipboard) {
       setNotice('Copy is not available in this browser.')
       return
     }
     try {
-      await navigator.clipboard.writeText(replyTranslation)
+      await navigator.clipboard.writeText(replyDraft)
       setNotice(`${languageLabels[outgoingLanguage]} translation copied.`)
     } catch {
       setNotice('Could not copy the reply. Select it manually.')
@@ -487,7 +498,17 @@ function App({
               <div className="reply-preview" aria-live="polite" key={replyTranslation ?? 'ready'}>
                 <span className="source-kicker">YOUR WORDS</span>
                 <strong>{replyText ?? (pttActive ? 'Listening…' : 'Ready when you are')}</strong>
-                {replyTranslation && <span className="translated-reply"><b>{languageLabels[outgoingLanguage]}</b> · {replyTranslation}</span>}
+                {replyTranslation && (
+                  <label className="reply-editor">
+                    <span>{languageLabels[outgoingLanguage]} translation</span>
+                    <textarea
+                      aria-label={`${languageLabels[outgoingLanguage]} reply`}
+                      onChange={(event) => setReplyDraft(event.target.value)}
+                      rows={2}
+                      value={replyDraft ?? replyTranslation}
+                    />
+                  </label>
+                )}
                 {replyTranslation && <button className="copy-button" type="button" onClick={copyReply}>Copy {languageLabels[outgoingLanguage]}</button>}
               </div>
             )}
