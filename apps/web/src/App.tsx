@@ -123,6 +123,10 @@ function App({
       setSystemTracks(capture.allTracks)
       if (supportsChunkedStt()) {
         systemSttRef.current = await startChunkedStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
+          if (event.type === 'error') {
+            setNotice('Speech could not be transcribed. Shared audio is still connected.')
+            return
+          }
           if (!event.text) return
           setIncomingText(event.text)
           if (event.is_final && event.speech_final) {
@@ -131,6 +135,10 @@ function App({
         }, { sendingOnStart: true, glossary: parseGlossary(gameGlossary) })
       } else if (typeof window.AudioContext !== 'undefined') {
         systemSttRef.current = await startLiveStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
+          if (event.type === 'error') {
+            setNotice('Speech could not be transcribed. Shared audio is still connected.')
+            return
+          }
           if (event.type !== 'transcript.partial' || !event.text) return
           setIncomingText(event.text)
           if (event.is_final && event.speech_final) {
