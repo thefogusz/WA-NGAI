@@ -28,6 +28,7 @@ type AppProps = {
 }
 
 type SupportedLanguage = 'en' | 'th'
+type IncomingStage = 'listening' | 'transcribing' | 'translating'
 
 const languageLabels: Record<SupportedLanguage, string> = {
   en: 'English',
@@ -102,6 +103,7 @@ function App({
   const [incomingText, setIncomingText] = useState<string | undefined>()
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
   const [incomingAudioLevel, setIncomingAudioLevel] = useState(0)
+  const [incomingStage, setIncomingStage] = useState<IncomingStage>('listening')
   const [replyText, setReplyText] = useState<string | undefined>()
   const [replyTranslation, setReplyTranslation] = useState<string | undefined>()
   const [replyDraft, setReplyDraft] = useState<string | undefined>()
@@ -139,7 +141,12 @@ function App({
       if (supportsChunkedStt()) {
         systemSttRef.current = await startChunkedStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
           if (event.type === 'error') {
+            setIncomingStage('listening')
             setNotice('Speech could not be transcribed. Shared audio is still connected.')
+            return
+          }
+          if (event.type === 'transcript.processing') {
+            setIncomingStage('transcribing')
             return
           }
           if (!event.text) return
@@ -148,15 +155,18 @@ function App({
             const context = incomingHistoryRef.current
             incomingHistoryRef.current = appendCommittedText(context, event.text)
             const requestId = ++incomingTranslationRequestRef.current
+            setIncomingStage('translating')
             try {
               const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
               if (requestId === incomingTranslationRequestRef.current) setIncomingTranslation(translation)
             } catch { setNotice('Translation is temporarily unavailable.') }
+            finally { if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening') }
           }
         }, { sendingOnStart: true, glossary: parseGlossary(gameGlossary), vadProfile })
       } else if (typeof window.AudioContext !== 'undefined') {
         systemSttRef.current = await startLiveStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
           if (event.type === 'error') {
+            setIncomingStage('listening')
             setNotice('Speech could not be transcribed. Shared audio is still connected.')
             return
           }
@@ -166,10 +176,12 @@ function App({
             const context = incomingHistoryRef.current
             incomingHistoryRef.current = appendCommittedText(context, event.text)
             const requestId = ++incomingTranslationRequestRef.current
+            setIncomingStage('translating')
             try {
               const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
               if (requestId === incomingTranslationRequestRef.current) setIncomingTranslation(translation)
             } catch { setNotice('Translation is temporarily unavailable.') }
+            finally { if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening') }
           }
         }, { sendingOnStart: true })
       }
@@ -264,6 +276,7 @@ function App({
     setSystemStatus('idle')
     setMicrophoneStatus('idle')
     setIncomingAudioLevel(0)
+    setIncomingStage('listening')
     incomingHistoryRef.current = []
     outgoingHistoryRef.current = []
     incomingTranslationRequestRef.current += 1
@@ -394,7 +407,7 @@ function App({
           <div className="widget-actions">
             <span className={`status-pill ${systemStatus === 'active' ? 'is-active' : ''}`}>
               <span aria-hidden="true" className="status-dot" />
-              {systemStatus === 'active' ? 'Listening' : 'Private'}
+              {systemStatus === 'active' ? incomingStage === 'transcribing' ? 'Transcribing' : incomingStage === 'translating' ? 'Translating' : 'Listening' : 'Private'}
             </span>
             <button
               aria-expanded={settingsOpen}

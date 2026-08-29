@@ -36,6 +36,7 @@ describe('startChunkedStt', () => {
     FakeRecorder.latest?.ondataavailable?.({ data: new Blob(['audio'], { type: 'audio/webm' }) } as BlobEvent)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce())
 
+    expect(onEvent).toHaveBeenCalledWith({ type: 'transcript.processing' })
     await vi.waitFor(() => expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ text: 'กำลังไป', is_final: true, speech_final: true })))
   })
 

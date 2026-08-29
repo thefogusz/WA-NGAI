@@ -60,6 +60,7 @@ export async function startChunkedStt(
     queuedBlob = undefined
     uploading = true
     lastRequestAt = Date.now()
+    onEvent({ type: 'transcript.processing' })
     try {
       const text = await transcribeChunk(blob, sourceLanguage, cleanGlossary)
       if (text) onEvent({ type: 'transcript.final', text, is_final: true, speech_final: true })
