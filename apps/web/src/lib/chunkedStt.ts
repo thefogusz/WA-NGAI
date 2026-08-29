@@ -1,12 +1,12 @@
 import type { LiveSttSession, TranscriptEvent } from './liveStt'
-import { createVoiceGate } from './voiceGate'
+import { startSileroVad, type SpeechDetector } from './sileroVad'
 
 type ChunkedSttOptions = {
   glossary?: string[]
   sendingOnStart?: boolean
+  startDetector?: (stream: MediaStream, onSegment: (segment: Blob) => void) => Promise<SpeechDetector>
 }
 
-const CHUNK_INTERVAL_MS = 6_000
 const MIN_REQUEST_INTERVAL_MS = 6_000
 
 function recorderMimeType() {
@@ -37,20 +37,18 @@ export async function startChunkedStt(
   stream: MediaStream,
   sourceLanguage: 'en' | 'th',
   onEvent: (event: TranscriptEvent) => void,
-  { glossary = [], sendingOnStart = false }: ChunkedSttOptions = {},
+  { glossary = [], sendingOnStart = false, startDetector = startSileroVad }: ChunkedSttOptions = {},
 ): Promise<LiveSttSession> {
   const audioStream = new MediaStream(stream.getAudioTracks())
   const options = recorderMimeType() ? { mimeType: recorderMimeType() } : undefined
   const recorder = new MediaRecorder(audioStream, options)
-  const gate = createVoiceGate({ threshold: 0.012, hangoverMs: 450 })
   const cleanGlossary = safeGlossary(glossary)
   let sending = sendingOnStart
   let stopped = false
   let lastRequestAt = Number.NEGATIVE_INFINITY
   let queuedBlob: Blob | undefined
   let uploading = false
-  let analyserContext: AudioContext | undefined
-  let animationFrame = 0
+  let detector: SpeechDetector | undefined
 
   const uploadNext = async () => {
     if (uploading || !queuedBlob || stopped) return
@@ -78,30 +76,18 @@ export async function startChunkedStt(
   recorder.ondataavailable = (event) => {
     const isFinalPushToTalkChunk = !sendingOnStart && recorder.state === 'inactive'
     if ((!sending && !isFinalPushToTalkChunk) || event.data.size === 0) return
-    if (!sendingOnStart || gate.consume(Date.now())) enqueue(event.data)
-  }
-
-  if (typeof AudioContext !== 'undefined') {
-    analyserContext = new AudioContext()
-    const source = analyserContext.createMediaStreamSource(audioStream)
-    const analyser = analyserContext.createAnalyser()
-    analyser.fftSize = 1024
-    source.connect(analyser)
-    const samples = new Float32Array(analyser.fftSize)
-    const measure = () => {
-      if (stopped) return
-      analyser.getFloatTimeDomainData(samples)
-      gate.observe(samples, Date.now())
-      animationFrame = requestAnimationFrame(measure)
-    }
-    measure()
+    enqueue(event.data)
   }
 
   const startRecording = () => {
-    if (recorder.state === 'inactive' && !stopped) recorder.start(sendingOnStart ? CHUNK_INTERVAL_MS : undefined)
+    if (recorder.state === 'inactive' && !stopped) recorder.start()
   }
 
-  if (sendingOnStart) startRecording()
+  if (sendingOnStart) {
+    detector = await startDetector(audioStream, (segment) => {
+      if (sending) enqueue(segment)
+    })
+  }
 
   return {
     finalize: () => {
@@ -115,10 +101,8 @@ export async function startChunkedStt(
     stop: () => {
       stopped = true
       sending = false
-      if (animationFrame) cancelAnimationFrame(animationFrame)
       if (recorder.state !== 'inactive') recorder.stop()
-      audioStream.getTracks().forEach((track) => track.stop())
-      void analyserContext?.close()
+      void detector?.stop()
     },
   }
 }

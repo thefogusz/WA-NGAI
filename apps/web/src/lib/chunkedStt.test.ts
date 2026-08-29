@@ -38,4 +38,28 @@ describe('startChunkedStt', () => {
 
     await vi.waitFor(() => expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ text: 'กำลังไป', is_final: true, speech_final: true })))
   })
+
+  it('sends only the completed local VAD segment for shared game audio', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ text: 'Meet at the gate.' }), { status: 200 }))
+    const stopDetector = vi.fn().mockResolvedValue(undefined)
+    const startDetector = vi.fn(async (_stream, onSegment) => {
+      onSegment(new Blob(['speech'], { type: 'audio/wav' }))
+      return { stop: stopDetector }
+    })
+    vi.stubGlobal('MediaRecorder', FakeRecorder)
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('MediaStream', class { constructor() {} })
+
+    const session = await startChunkedStt(
+      { getAudioTracks: () => [{}] } as unknown as MediaStream,
+      'en',
+      vi.fn(),
+      { sendingOnStart: true, startDetector },
+    )
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce())
+    expect(FakeRecorder.latest?.start).not.toHaveBeenCalled()
+    session.stop()
+    expect(stopDetector).toHaveBeenCalledOnce()
+  })
 })
