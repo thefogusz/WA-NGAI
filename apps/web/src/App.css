@@ -7,6 +7,7 @@
 h1, h2, p { margin-top: 0; }
 h1 { align-items: baseline; color: #f5f6f9; display: inline-flex; font-family: "DM Sans", "Arial Nova", Arial, sans-serif; font-size: clamp(36px, 9vw, 49px); font-weight: 800; gap: 10px; letter-spacing: -.07em; line-height: .94; margin-bottom: 0; text-shadow: 0 1px 0 rgba(255, 255, 255, .14), 0 8px 22px rgba(0, 0, 0, .22); }
 .wordmark-main { display: inline-block; }
+.wordmark-divider { align-self: center; background: rgba(192, 197, 209, .52); height: .5em; margin: 0 1px; width: 1px; }
 .wordmark-thai { align-items: center; color: #b9becc; display: inline-flex; font-size: .34em; font-weight: 700; letter-spacing: .015em; line-height: 1; text-shadow: none; }
 h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 
