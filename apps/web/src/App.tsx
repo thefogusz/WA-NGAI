@@ -397,7 +397,7 @@ function App({
     <main className="app-shell">
       <section className="intro-panel" aria-labelledby="app-title">
         <p className="eyebrow">LIVE TRANSLATION</p>
-        <h1 aria-label="WA-NGAI ว่าไง" id="app-title"><span className="wordmark-main">WA-NGAI</span><span aria-hidden="true" className="wordmark-divider" /><span className="wordmark-thai" lang="th">ว่าไง</span></h1>
+        <h1 aria-label="WA-NGAI ว่าไง" id="app-title"><span className="wordmark-main">WA-NGAI</span><span className="wordmark-thai" lang="th">ว่าไง</span></h1>
       </section>
 
       <section className="widget-card" aria-labelledby="session-title">
