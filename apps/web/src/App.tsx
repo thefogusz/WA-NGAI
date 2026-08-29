@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import './App.css'
 import {
@@ -12,6 +12,7 @@ import {
 } from './lib/capabilities'
 import { stopSessionMedia, type SessionTrack } from './lib/mediaLifecycle'
 import { openFloatingWidget, type PictureInPictureApi } from './lib/pictureInPicture'
+import { startLiveStt, type LiveSttSession, type TranscriptEvent } from './lib/liveStt'
 
 type AppMediaDevices = Pick<MediaDevices, 'getDisplayMedia' | 'getUserMedia'>
 type CaptureStatus = 'idle' | 'requesting' | 'active' | 'error'
@@ -55,6 +56,18 @@ function describeCaptureError(error: unknown, fallback: string): string {
   return fallback
 }
 
+async function translateText(text: string, sourceLanguage: SupportedLanguage, targetLanguage: SupportedLanguage): Promise<string> {
+  const response = await fetch('/v1/translate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ sourceLanguage, targetLanguage, text }),
+  })
+  if (!response.ok) throw new Error('Translation unavailable')
+  const result = await response.json() as { text?: string }
+  if (!result.text) throw new Error('Translation unavailable')
+  return result.text
+}
+
 function App({
   capabilityReport,
   mediaDevices = getDefaultMediaDevices(),
@@ -72,6 +85,12 @@ function App({
   const [myLanguage, setMyLanguage] = useState<SupportedLanguage>('th')
   const [shortcut, setShortcut] = useState<string | undefined>()
   const [shortcutCapture, setShortcutCapture] = useState(false)
+  const [incomingText, setIncomingText] = useState<string | undefined>()
+  const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
+  const [replyText, setReplyText] = useState<string | undefined>()
+  const [replyTranslation, setReplyTranslation] = useState<string | undefined>()
+  const systemSttRef = useRef<LiveSttSession | null>(null)
+  const microphoneSttRef = useRef<LiveSttSession | null>(null)
   const [notice, setNotice] = useState<string | undefined>()
 
   const startSystemAudio = async () => {
@@ -89,6 +108,15 @@ function App({
         getDisplayMedia: (options) => mediaDevices.getDisplayMedia(options),
       })
       setSystemTracks(capture.allTracks)
+      if (typeof window.AudioContext !== 'undefined') {
+        systemSttRef.current = await startLiveStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
+          if (event.type !== 'transcript.partial' || !event.text) return
+          setIncomingText(event.text)
+          if (event.is_final && event.speech_final) {
+            try { setIncomingTranslation(await translateText(event.text, theirLanguage, incomingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+          }
+        })
+      }
       setSystemStatus('active')
     } catch (error) {
       setSystemStatus('error')
@@ -111,6 +139,15 @@ function App({
         getUserMedia: (options) => mediaDevices.getUserMedia(options),
       })
       setMicrophoneTracks(capture.allTracks)
+      if (typeof window.AudioContext !== 'undefined') {
+        microphoneSttRef.current = await startLiveStt(capture.stream as MediaStream, myLanguage, async (event: TranscriptEvent) => {
+          if (event.type !== 'transcript.partial' || !event.text) return
+          setReplyText(event.text)
+          if (event.is_final && event.speech_final) {
+            try { setReplyTranslation(await translateText(event.text, myLanguage, outgoingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+          }
+        })
+      }
       setMicrophoneStatus('active')
     } catch (error) {
       setMicrophoneStatus('error')
@@ -119,6 +156,10 @@ function App({
   }
 
   const endSession = async () => {
+    systemSttRef.current?.stop()
+    microphoneSttRef.current?.stop()
+    systemSttRef.current = null
+    microphoneSttRef.current = null
     await stopSessionMedia([...systemTracks, ...microphoneTracks])
     setSystemTracks([])
     setMicrophoneTracks([])
@@ -151,7 +192,11 @@ function App({
     systemStatus === 'active' ? 'Listening to shared audio' : 'Game / Discord audio'
   const microphoneLabel =
     microphoneStatus === 'active' ? 'Microphone ready' : 'Your microphone'
-  const stopPushToTalk = () => setPttActive(false)
+  const stopPushToTalk = () => {
+    microphoneSttRef.current?.setSending(false)
+    microphoneSttRef.current?.finalize()
+    setPttActive(false)
+  }
   const incomingLanguage = theirLanguage === 'en' ? 'th' : 'en'
   const outgoingLanguage = myLanguage === 'en' ? 'th' : 'en'
   const incomingDirection = `${languageLabels[theirLanguage]} → ${languageLabels[incomingLanguage]}`
@@ -320,6 +365,14 @@ function App({
               </button>
             </div>
 
+            {incomingText && (
+              <div className="incoming-preview" aria-live="polite">
+                <span className="source-kicker">THEM</span>
+                <strong>{incomingText}</strong>
+                {incomingTranslation && <span>{incomingTranslation}</span>}
+              </div>
+            )}
+
             <div className={`source-row ${microphoneStatus === 'active' ? 'is-active' : ''}`}>
               <div className="source-copy">
                 <span className="source-kicker">OUTGOING</span>
@@ -351,6 +404,7 @@ function App({
                   onPointerDown={(event) => {
                     event.currentTarget.setPointerCapture?.(event.pointerId)
                     setNotice(undefined)
+                    microphoneSttRef.current?.setSending(true)
                     setPttActive(true)
                   }}
                   onPointerUp={stopPushToTalk}
@@ -363,7 +417,8 @@ function App({
             {microphoneStatus === 'active' && (
               <div className="reply-preview" aria-live="polite">
                 <span className="source-kicker">YOUR REPLY</span>
-                <strong>{pttActive ? '…' : 'Ready when you are'}</strong>
+                <strong>{pttActive ? '…' : replyTranslation ?? 'Ready when you are'}</strong>
+                {replyText && <span>{replyText}</span>}
               </div>
             )}
 

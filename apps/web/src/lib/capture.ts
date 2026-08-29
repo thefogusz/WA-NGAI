@@ -1,6 +1,6 @@
 import { stopSessionMedia, type SessionTrack } from './mediaLifecycle'
 
-type MediaStreamLike = {
+export type MediaStreamLike = {
   getAudioTracks: () => SessionTrack[]
   getTracks: () => SessionTrack[]
 }
@@ -22,6 +22,7 @@ type MicrophoneApi = {
 export type AudioCapture = {
   audioTracks: SessionTrack[]
   allTracks: SessionTrack[]
+  stream: MediaStreamLike
 }
 
 export class MissingSystemAudioTrackError extends Error {
@@ -48,7 +49,7 @@ export async function requestSystemAudioCapture(
     throw new MissingSystemAudioTrackError()
   }
 
-  return { audioTracks, allTracks: stream.getTracks() }
+  return { audioTracks, allTracks: stream.getTracks(), stream }
 }
 
 export async function requestMicrophoneCapture(
@@ -66,5 +67,6 @@ export async function requestMicrophoneCapture(
   return {
     audioTracks: stream.getAudioTracks(),
     allTracks: stream.getTracks(),
+    stream,
   }
 }
