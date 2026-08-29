@@ -12,6 +12,7 @@ import {
 } from './lib/capabilities'
 import { stopSessionMedia, type SessionTrack } from './lib/mediaLifecycle'
 import { openFloatingWidget, updateFloatingWidget, type PictureInPictureApi } from './lib/pictureInPicture'
+import { startChunkedStt } from './lib/chunkedStt'
 import { startLiveStt, type LiveSttSession, type TranscriptEvent } from './lib/liveStt'
 
 type AppMediaDevices = Pick<MediaDevices, 'getDisplayMedia' | 'getUserMedia'>
@@ -42,6 +43,14 @@ function getDefaultPictureInPictureApi(): PictureInPictureApi | undefined {
   return (
     window as Window & { documentPictureInPicture?: PictureInPictureApi }
   ).documentPictureInPicture
+}
+
+function parseGlossary(value: string): string[] {
+  return value.split(',').map((term) => term.trim()).filter(Boolean).slice(0, 20)
+}
+
+function supportsChunkedStt() {
+  return typeof MediaRecorder !== 'undefined' && typeof MediaStream !== 'undefined'
 }
 
 function describeCaptureError(error: unknown, fallback: string): string {
@@ -85,6 +94,7 @@ function App({
   const [myLanguage, setMyLanguage] = useState<SupportedLanguage>('th')
   const [shortcut, setShortcut] = useState<string | undefined>()
   const [shortcutCapture, setShortcutCapture] = useState(false)
+  const [gameGlossary, setGameGlossary] = useState('')
   const [incomingText, setIncomingText] = useState<string | undefined>()
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
   const [replyText, setReplyText] = useState<string | undefined>()
@@ -109,7 +119,15 @@ function App({
         getDisplayMedia: (options) => mediaDevices.getDisplayMedia(options),
       })
       setSystemTracks(capture.allTracks)
-      if (typeof window.AudioContext !== 'undefined') {
+      if (supportsChunkedStt()) {
+        systemSttRef.current = await startChunkedStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
+          if (!event.text) return
+          setIncomingText(event.text)
+          if (event.is_final && event.speech_final) {
+            try { setIncomingTranslation(await translateText(event.text, theirLanguage, incomingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+          }
+        }, { sendingOnStart: true, glossary: parseGlossary(gameGlossary) })
+      } else if (typeof window.AudioContext !== 'undefined') {
         systemSttRef.current = await startLiveStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
           if (event.type !== 'transcript.partial' || !event.text) return
           setIncomingText(event.text)
@@ -140,7 +158,15 @@ function App({
         getUserMedia: (options) => mediaDevices.getUserMedia(options),
       })
       setMicrophoneTracks(capture.allTracks)
-      if (typeof window.AudioContext !== 'undefined') {
+      if (supportsChunkedStt()) {
+        microphoneSttRef.current = await startChunkedStt(capture.stream as MediaStream, myLanguage, async (event: TranscriptEvent) => {
+          if (!event.text) return
+          setReplyText(event.text)
+          if (event.is_final && event.speech_final) {
+            try { setReplyTranslation(await translateText(event.text, myLanguage, outgoingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+          }
+        }, { glossary: parseGlossary(gameGlossary) })
+      } else if (typeof window.AudioContext !== 'undefined') {
         microphoneSttRef.current = await startLiveStt(capture.stream as MediaStream, myLanguage, async (event: TranscriptEvent) => {
           if (event.type !== 'transcript.partial' || !event.text) return
           setReplyText(event.text)
@@ -350,6 +376,17 @@ function App({
                 {shortcutCapture ? 'Press a key' : shortcut ? shortcut : 'Set'}
               </button>
             </div>
+            <label className="glossary-field">
+              <span className="source-kicker">GAME TERMS <em>optional</em></span>
+              <input
+                aria-label="Game terms"
+                maxLength={500}
+                onChange={(event) => setGameGlossary(event.target.value)}
+                placeholder="Apex, north gate, teammate"
+                value={gameGlossary}
+              />
+              <small>Comma-separated names help spelling; kept only in this session.</small>
+            </label>
           </section>
         )}
 

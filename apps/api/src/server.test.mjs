@@ -18,6 +18,22 @@ async function withServer(handler, run) {
   }
 }
 
+async function withGroqServer(handler, run) {
+  const server = createApiServer({
+    apiKey: 'server-only-xai-key',
+    groqApiKey: 'server-only-groq-key',
+    groqTranscribe: handler,
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const { port } = server.address()
+
+  try {
+    await run(`http://127.0.0.1:${port}`)
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+  }
+}
+
 test('accepts a bounded same-origin translation request and returns only the translation', async () => {
   await withServer(async () => ({ text: 'กำลังไป' }), async (baseUrl) => {
     const response = await fetch(`${baseUrl}/v1/translate`, {
@@ -55,5 +71,28 @@ test('rejects a cross-origin request before it calls the provider', async () => 
       error: { code: 'ORIGIN_NOT_ALLOWED', message: 'Request origin is not allowed.' },
     })
     assert.equal(providerCalled, false)
+  })
+})
+
+test('accepts a local bounded audio chunk and returns only Groq transcript text', async () => {
+  await withGroqServer(async (config, input) => {
+    assert.equal(config.apiKey, 'server-only-groq-key')
+    assert.equal(input.language, 'th')
+    assert.deepEqual(input.glossary, ['Apex', 'ลาดชัน'])
+    return { text: 'ไปทางเหนือ' }
+  }, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/v1/stt/chunk`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'audio/webm;codecs=opus',
+        origin: 'http://127.0.0.1:5173',
+        'x-wa-ngai-language': 'th',
+        'x-wa-ngai-glossary': encodeURIComponent(JSON.stringify(['Apex', 'ลาดชัน'])),
+      },
+      body: Buffer.from([1, 2, 3]),
+    })
+
+    assert.equal(response.status, 200)
+    assert.deepEqual(await response.json(), { text: 'ไปทางเหนือ' })
   })
 })

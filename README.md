@@ -35,9 +35,9 @@ These limits are validation gates, not hidden future problems.
 
 ## Current status
 
-The local MVP is implemented in `apps/web`: permission-gated game-audio and microphone capture, PCM16 streaming speech-to-text, final-utterance translation, right-aligned reply bubbles with explicit Copy, push-to-talk, and a 360 × 220 Document Picture-in-Picture widget.
+The local MVP is implemented in `apps/web`: permission-gated game-audio and microphone capture, local voice-gated WebM chunks, final-utterance translation, right-aligned reply bubbles with explicit Copy, push-to-talk, a compact game-terms field, and a 360 × 220 Document Picture-in-Picture widget.
 
-The local API boundary is implemented in `apps/api`. It reads `XAI_API_KEY` only from the ignored root `.env.local` file, exposes a local-only `POST /v1/translate` proxy, and bridges local `/v1/stt` WebSocket streams to xAI. It is not a public deployment and does not yet have user authentication, rate limits, or a public hosting layer.
+The local API boundary is implemented in `apps/api`. It reads `GROQ_API_KEY` and `XAI_API_KEY` only from the ignored root `.env.local` file. Browser audio goes to local-only `POST /v1/stt/chunk`, then the API submits it to Groq `whisper-large-v3-turbo`; final text goes through local-only `POST /v1/translate` to the existing xAI translation path. The browser never receives either key. The chunker limits uploads to one per six seconds and discards silent shared-audio chunks locally. This is not a public deployment: add user authentication and server-side per-user quotas before sharing it publicly.
 
 ## Run locally
 
@@ -47,4 +47,4 @@ The local API boundary is implemented in `apps/api`. It reads `XAI_API_KEY` only
 
 ## Remaining owner validation
 
-Run the manual browser matrix with a real Chrome/Edge tab-audio and microphone permission grant. The local xAI bridge and translation call are connected, but physical audio quality must be checked with the owner’s actual devices and game/Discord setup.
+Run the manual browser matrix with a real Chrome/Edge tab-audio and microphone permission grant. The local Groq chunk path and xAI translation call are connected, but physical audio quality must be checked with the owner’s actual devices and game/Discord setup. Shared-audio captions arrive per speech-containing six-second chunk, while a push-to-talk reply is sent when the player releases the button.
