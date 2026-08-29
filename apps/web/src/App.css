@@ -1,8 +1,8 @@
 #root { min-height: 100svh; }
 
 .app-shell { display: grid; gap: 18px; margin: 0 auto; padding: clamp(26px, 8vh, 72px) 16px; width: min(100%, 460px); }
-.intro-panel { animation: brand-enter 320ms cubic-bezier(.2, .8, .2, 1) both; padding: 0 6px; position: relative; text-align: center; }
-.intro-panel::after { background: #69d193; border-radius: 999px; bottom: -9px; box-shadow: 0 0 0 4px rgba(105, 209, 147, .08); content: ''; height: 4px; left: calc(50% - 2px); position: absolute; width: 4px; }
+.intro-panel { animation: brand-enter 320ms cubic-bezier(.2, .8, .2, 1) both; padding: 0 6px; text-align: center; }
+.intro-panel .eyebrow::after { background: #69d193; border-radius: 999px; box-shadow: 0 0 0 3px rgba(105, 209, 147, .08); content: ''; display: inline-block; height: 4px; margin: 0 0 1px 7px; vertical-align: middle; width: 4px; }
 .eyebrow { color: #8e919e; font-family: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace; font-size: 9px; font-weight: 700; letter-spacing: .18em; margin: 0 0 8px; }
 h1, h2, p { margin-top: 0; }
 h1 { align-items: baseline; color: #f5f6f9; display: inline-flex; font-family: "DM Sans", "Arial Nova", Arial, sans-serif; font-size: clamp(36px, 9vw, 49px); font-weight: 800; gap: 11px; letter-spacing: -.07em; line-height: .94; margin-bottom: 0; text-shadow: 0 1px 0 rgba(255, 255, 255, .14), 0 8px 22px rgba(0, 0, 0, .22); }
