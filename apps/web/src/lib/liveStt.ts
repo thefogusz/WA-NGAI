@@ -11,6 +11,10 @@ export type LiveSttSession = {
   stop: () => void
 }
 
+type LiveSttOptions = {
+  sendingOnStart?: boolean
+}
+
 function sttSocketUrl(sourceLanguage: 'en' | 'th'): string {
   const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
   return `${scheme}://${window.location.hostname}:8787/v1/stt?source=${sourceLanguage}`
@@ -20,6 +24,7 @@ export async function startLiveStt(
   stream: MediaStream,
   sourceLanguage: 'en' | 'th',
   onEvent: (event: TranscriptEvent) => void,
+  options: LiveSttOptions = {},
 ): Promise<LiveSttSession> {
   const audioContext = new AudioContext()
   await audioContext.audioWorklet.addModule('/pcm-processor.js')
@@ -27,7 +32,7 @@ export async function startLiveStt(
   const processor = new AudioWorkletNode(audioContext, 'wa-ngai-pcm')
   const silentGain = audioContext.createGain()
   silentGain.gain.value = 0
-  let sending = sourceLanguage === 'en'
+  let sending = options.sendingOnStart ?? false
   const socket = new WebSocket(sttSocketUrl(sourceLanguage))
   socket.binaryType = 'arraybuffer'
 

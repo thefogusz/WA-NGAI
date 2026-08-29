@@ -116,7 +116,7 @@ function App({
           if (event.is_final && event.speech_final) {
             try { setIncomingTranslation(await translateText(event.text, theirLanguage, incomingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
           }
-        })
+        }, { sendingOnStart: true })
       }
       setSystemStatus('active')
     } catch (error) {
