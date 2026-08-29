@@ -199,7 +199,7 @@ function App({
     }
     try {
       await navigator.clipboard.writeText(replyTranslation)
-      setNotice('English reply copied.')
+      setNotice(`${languageLabels[outgoingLanguage]} translation copied.`)
     } catch {
       setNotice('Could not copy the reply. Select it manually.')
     }
@@ -426,7 +426,7 @@ function App({
                 <div className="ptt-copy">
                   <span className="source-kicker">THAI REPLY</span>
                   <strong id="ptt-title">{pttActive ? `Listening in ${languageLabels[myLanguage]}` : `Hold to speak ${languageLabels[myLanguage]}`}</strong>
-                  <span>{pttActive ? 'Release to finalize your reply.' : 'Your English reply will appear on the right.'}</span>
+                  <span>{pttActive ? 'Thai text is appearing live. Release to translate.' : 'Your Thai text appears first. Translation follows.'}</span>
                 </div>
                 <button
                   aria-label={pttActive ? `Listening in ${languageLabels[myLanguage]}` : `Hold to speak ${languageLabels[myLanguage]}`}
@@ -448,10 +448,10 @@ function App({
 
             {microphoneStatus === 'active' && (
               <div className="reply-preview" aria-live="polite" key={replyTranslation ?? 'ready'}>
-                <span className="source-kicker">YOUR REPLY</span>
-                <strong>{pttActive ? '…' : replyTranslation ?? 'Ready when you are'}</strong>
-                {replyText && <span>{replyText}</span>}
-                {replyTranslation && <button className="copy-button" type="button" onClick={copyReply}>Copy English</button>}
+                <span className="source-kicker">YOUR WORDS</span>
+                <strong>{replyText ?? (pttActive ? 'Listening…' : 'Ready when you are')}</strong>
+                {replyTranslation && <span className="translated-reply"><b>{languageLabels[outgoingLanguage]}</b> · {replyTranslation}</span>}
+                {replyTranslation && <button className="copy-button" type="button" onClick={copyReply}>Copy {languageLabels[outgoingLanguage]}</button>}
               </div>
             )}
 

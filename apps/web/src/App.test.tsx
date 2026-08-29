@@ -79,6 +79,7 @@ describe('WANGAI feasibility harness', () => {
 
     await user.click(screen.getByRole('button', { name: 'Enable microphone' }))
     const pttButton = await screen.findByRole('button', { name: 'Hold to speak Thai' })
+    expect(screen.getByText('Your Thai text appears first. Translation follows.')).toBeVisible()
 
     await user.pointer([{ keys: '[MouseLeft>]', target: pttButton }])
     expect(screen.getByRole('button', { name: 'Listening in Thai' })).toBeVisible()

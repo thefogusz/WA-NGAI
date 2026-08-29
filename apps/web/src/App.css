@@ -65,7 +65,8 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 .ptt-button.is-active::after { animation: talk-ring 1.1s ease-out infinite; border: 2px solid rgba(99, 196, 139, .65); border-radius: inherit; content: ''; inset: -4px; pointer-events: none; position: absolute; }
 .reply-preview { align-items: flex-end; animation: reply-arrive 210ms cubic-bezier(.2, .8, .2, 1) both; background: #25272f; border-radius: 14px; display: grid; gap: 4px; justify-self: end; max-width: 80%; min-width: 176px; padding: 11px 13px; text-align: right; }
 .reply-preview strong { color: #eff0f4; font-size: 14px; }
-.reply-preview span:last-child, .incoming-preview span:last-child { color: #a9acb7; font-size: 12px; }
+.translated-reply, .incoming-preview span:last-child { color: #a9acb7; font-size: 12px; }
+.translated-reply b { color: #78d8a0; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
 .copy-button { background: transparent; border: 0; color: #7dd9a2; font-size: 11px; font-weight: 700; justify-self: end; min-height: 28px; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; }
 .incoming-preview { animation: incoming-arrive 210ms cubic-bezier(.2, .8, .2, 1) both; background: #25272f; border-radius: 14px; display: grid; gap: 4px; max-width: 80%; min-width: 176px; padding: 11px 13px; }
 .incoming-preview strong { color: #eff0f4; font-size: 14px; }

@@ -38,7 +38,9 @@ describe('openFloatingWidget', () => {
 
     expect(pipDocument.querySelector('[data-wangai-incoming]')?.textContent).toBe('<b>North gate</b>')
     expect(pipDocument.body.textContent).toContain('ประตูเหนือ')
-    expect(pipDocument.body.textContent).toContain('On my way.')
-    expect(pipDocument.querySelector('[data-wangai-reply]')?.hasAttribute('hidden')).toBe(false)
+    const reply = pipDocument.querySelector('[data-wangai-reply]')
+    expect(reply?.querySelector('strong')?.textContent).toBe('กำลังไป')
+    expect(reply?.textContent).toContain('Translation · On my way.')
+    expect(reply?.hasAttribute('hidden')).toBe(false)
   })
 })

@@ -58,9 +58,11 @@ export function updateFloatingWidget(pipWindow: Window, snapshot: FloatingWidget
 
   if (incoming && snapshot.incomingText) incoming.textContent = snapshot.incomingText
   if (incomingTranslation && snapshot.incomingTranslation) incomingTranslation.textContent = snapshot.incomingTranslation
-  if (reply && snapshot.replyTranslation) {
+  if (reply && (snapshot.replyText || snapshot.replyTranslation)) {
     reply.hidden = false
-    reply.querySelector('strong')!.textContent = snapshot.replyTranslation
-    reply.querySelector('.translation')!.textContent = snapshot.replyText ?? ''
+    reply.querySelector('strong')!.textContent = snapshot.replyText ?? snapshot.replyTranslation ?? ''
+    reply.querySelector('.translation')!.textContent = snapshot.replyTranslation
+      ? `Translation · ${snapshot.replyTranslation}`
+      : ''
   }
 }
