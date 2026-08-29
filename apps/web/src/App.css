@@ -7,7 +7,8 @@
 h1, h2, p { margin-top: 0; }
 h1 { align-items: baseline; color: #f5f6f9; display: inline-flex; font-family: "DM Sans", "Arial Nova", Arial, sans-serif; font-size: clamp(36px, 9vw, 49px); font-weight: 800; gap: 11px; letter-spacing: -.07em; line-height: .94; margin-bottom: 0; text-shadow: 0 1px 0 rgba(255, 255, 255, .14), 0 8px 22px rgba(0, 0, 0, .22); }
 .wordmark-main { display: inline-block; }
-.wordmark-thai { align-items: center; border-left: 1px solid rgba(172, 178, 194, .38); color: #c0c5d1; display: inline-flex; font-size: .34em; font-weight: 700; letter-spacing: .015em; line-height: 1; padding-left: 11px; text-shadow: none; }
+.wordmark-thai { align-items: center; color: #c0c5d1; display: inline-flex; font-size: .34em; font-weight: 700; letter-spacing: .015em; line-height: 1; padding-left: 15px; position: relative; text-shadow: none; }
+.wordmark-thai::before { background: rgba(192, 197, 209, .5); content: ''; height: 1.05em; left: 0; position: absolute; top: 50%; transform: translateY(-50%); width: 1px; }
 h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 
 .widget-card { animation: card-enter 260ms cubic-bezier(.2, .8, .2, 1) both; background: rgba(28, 29, 36, .94); border: 1px solid rgba(255, 255, 255, .09); border-radius: 24px; box-shadow: 0 22px 58px rgba(0, 0, 0, .28); padding: 20px; }
