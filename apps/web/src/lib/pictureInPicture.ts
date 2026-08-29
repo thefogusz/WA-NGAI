@@ -12,15 +12,18 @@ export type FloatingWidgetSnapshot = {
 }
 
 const widgetStyles = `
-  :root { color: #f7f7fb; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap');
+  :root { color: #f7f7fb; font-family: "DM Sans", Inter, ui-sans-serif, system-ui, sans-serif; }
   body { margin: 0; min-width: 0; background: transparent; }
   [data-wangai-widget] { background: #15161b; border: 1px solid rgba(255, 255, 255, .11); border-radius: 18px; box-sizing: border-box; min-height: 100vh; padding: 16px; }
   .topline { align-items: center; color: #9ea1ac; display: flex; font-size: 11px; font-weight: 700; justify-content: space-between; letter-spacing: .1em; }
-  .brand-thai { color: #737681; font-size: 10px; font-weight: 500; letter-spacing: 0; margin-left: 5px; }
+  .brand-thai { color: #8d91a0; font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0; margin-left: 5px; }
   .live { align-items: center; color: #75d5a0; display: flex; font-size: 11px; gap: 6px; letter-spacing: 0; }
   .dot { background: #62ce90; border-radius: 50%; box-shadow: 0 0 0 3px rgba(98, 206, 144, .12); height: 7px; width: 7px; }
   .message { background: #22242c; border: 1px solid rgba(255, 255, 255, .06); border-radius: 13px; color: #f8f8fb; font-size: 14px; font-weight: 650; line-height: 1.35; margin-top: 13px; padding: 11px 12px; }
   .translation { color: #a8aab4; display: block; font-size: 12px; font-weight: 400; margin-top: 4px; }
+  :lang(th) { font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif; }
+  .translation:lang(th), .message strong:lang(th) { color: #d1d4de; font-size: 13px; font-weight: 500; line-height: 1.65; }
   .reply { background: #1d2922; margin-left: 42px; text-align: right; }
   .footer { color: #878a95; display: flex; font-size: 11px; justify-content: space-between; margin-top: 12px; }
 `
@@ -37,8 +40,8 @@ export async function openFloatingWidget(
   const root = document.createElement('main')
   root.dataset.wangaiWidget = 'true'
   root.innerHTML = `
-    <div class="topline"><span>WA-NGAI <span class="brand-thai">ว่าไง</span></span><span class="live"><span class="dot"></span>${snapshot.systemAudioActive ? 'Listening' : 'Ready'}</span></div>
-    <div class="message"><strong data-wangai-incoming>${snapshot.systemAudioActive ? 'Listening to shared audio' : 'Waiting for shared audio'}</strong><span class="translation" data-wangai-incoming-translation>${snapshot.systemAudioActive ? 'แปลข้อความเมื่อการเชื่อมต่อพร้อม' : 'เริ่มจากกดแชร์เสียงเกม'}</span></div>
+    <div class="topline"><span>WA-NGAI <span class="brand-thai" lang="th">ว่าไง</span></span><span class="live"><span class="dot"></span>${snapshot.systemAudioActive ? 'Listening' : 'Ready'}</span></div>
+    <div class="message"><strong data-wangai-incoming>${snapshot.systemAudioActive ? 'Listening to shared audio' : 'Waiting for shared audio'}</strong><span class="translation" data-wangai-incoming-translation lang="th">${snapshot.systemAudioActive ? 'แปลข้อความเมื่อการเชื่อมต่อพร้อม' : 'เริ่มจากกดแชร์เสียงเกม'}</span></div>
     <div class="message reply" data-wangai-reply hidden><strong></strong><span class="translation"></span></div>
     <div class="footer"><span>${snapshot.microphoneReady ? 'Mic ready' : 'Mic off'}</span><span>External only</span></div>
   `
@@ -56,13 +59,19 @@ export function updateFloatingWidget(pipWindow: Window, snapshot: FloatingWidget
   const incomingTranslation = document.querySelector<HTMLElement>('[data-wangai-incoming-translation]')
   const reply = document.querySelector<HTMLElement>('[data-wangai-reply]')
 
-  if (incoming && snapshot.incomingText) incoming.textContent = snapshot.incomingText
-  if (incomingTranslation && snapshot.incomingTranslation) incomingTranslation.textContent = snapshot.incomingTranslation
+  if (incoming && snapshot.incomingText) setWidgetText(incoming, snapshot.incomingText)
+  if (incomingTranslation && snapshot.incomingTranslation) setWidgetText(incomingTranslation, snapshot.incomingTranslation)
   if (reply && (snapshot.replyText || snapshot.replyTranslation)) {
     reply.hidden = false
-    reply.querySelector('strong')!.textContent = snapshot.replyText ?? snapshot.replyTranslation ?? ''
-    reply.querySelector('.translation')!.textContent = snapshot.replyTranslation
+    setWidgetText(reply.querySelector('strong')!, snapshot.replyText ?? snapshot.replyTranslation ?? '')
+    setWidgetText(reply.querySelector('.translation')!, snapshot.replyTranslation
       ? `Translation · ${snapshot.replyTranslation}`
-      : ''
+      : '')
   }
+}
+
+function setWidgetText(element: HTMLElement, text: string) {
+  element.textContent = text
+  if (/[\u0E00-\u0E7F]/.test(text)) element.lang = 'th'
+  else element.removeAttribute('lang')
 }

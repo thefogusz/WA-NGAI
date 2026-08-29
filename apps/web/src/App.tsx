@@ -399,7 +399,7 @@ function App({
     <main className="app-shell">
       <section className="intro-panel" aria-labelledby="app-title">
         <p className="eyebrow">LIVE TRANSLATION</p>
-        <h1 aria-label="WA-NGAI ว่าไง" id="app-title"><span className="wordmark-main">WA-NGAI</span><span className="wordmark-thai">ว่าไง</span></h1>
+        <h1 aria-label="WA-NGAI ว่าไง" id="app-title"><span className="wordmark-main">WA-NGAI</span><span className="wordmark-thai" lang="th">ว่าไง</span></h1>
       </section>
 
       <section className="widget-card" aria-labelledby="session-title">
@@ -485,11 +485,11 @@ function App({
             <div className="conversation-preview" aria-hidden="true">
               <div className="message message-incoming">
                 <strong>Join us at the north gate.</strong>
-                <span>ไปรวมกันที่ประตูเหนือ</span>
+                <span lang="th">ไปรวมกันที่ประตูเหนือ</span>
               </div>
               <div className="message message-outgoing">
                 <strong>On my way.</strong>
-                <span>กำลังไป</span>
+                <span lang="th">กำลังไป</span>
               </div>
             </div>
             <button
@@ -536,8 +536,8 @@ function App({
             {incomingText && (
               <div className="incoming-preview" aria-live="polite" key={incomingText}>
                 <span className="source-kicker">THEM</span>
-                <strong>{incomingText}</strong>
-                {incomingTranslation && <span>{incomingTranslation}</span>}
+                <strong lang={theirLanguage}>{incomingText}</strong>
+                {incomingTranslation && <span className="translated-text" lang={incomingLanguage}>{incomingTranslation}</span>}
               </div>
             )}
 
@@ -585,12 +585,13 @@ function App({
             {microphoneStatus === 'active' && (
               <div className="reply-preview" aria-live="polite" key={replyTranslation ?? 'ready'}>
                 <span className="source-kicker">YOUR WORDS</span>
-                <strong>{replyText ?? (pttActive ? 'Listening…' : 'Ready when you are')}</strong>
+                <strong lang={myLanguage}>{replyText ?? (pttActive ? 'Listening…' : 'Ready when you are')}</strong>
                 {replyTranslation && (
                   <label className="reply-editor">
                     <span>{languageLabels[outgoingLanguage]} translation</span>
                     <textarea
                       aria-label={`${languageLabels[outgoingLanguage]} reply`}
+                      lang={outgoingLanguage}
                       onChange={(event) => setReplyDraft(event.target.value)}
                       rows={2}
                       value={replyDraft ?? replyTranslation}
