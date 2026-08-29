@@ -31,11 +31,12 @@ These limits are validation gates, not hidden future problems.
 5. [Security, cost, and API preparation](docs/05_SECURITY_COST_AND_API_SETUP.md)
 6. [Verified browser/provider research](docs/06_RESEARCH_NOTES.md)
 7. [Implementation task tickets](docs/07_IMPLEMENTATION_TASKS.md)
+8. [Goal 0 manual browser validation](docs/08_GOAL0_MANUAL_BROWSER_MATRIX.md)
 
 ## Current status
 
-Planning only. No application code has been scaffolded. Implementation begins only after the owner approves the specification and Goal 0 feasibility gates.
+Goal 0 feasibility harness is implemented in `apps/web`: compact no-key setup UI, permission-gated game-audio and microphone capture primitives, session cleanup, and a 360 × 220 Document Picture-in-Picture widget. It does not yet stream audio to xAI or call Grok.
 
 ## Owner decision requested
 
-Approve the MVP baseline: Windows 11 + current Chrome/Edge, borderless-windowed games, click-to-toggle microphone, manual Copy/Paste, and xAI-hosted STT plus Grok 4.3 translation.
+Run the manual browser matrix with a real Chrome/Edge permission grant before moving to live transcription.

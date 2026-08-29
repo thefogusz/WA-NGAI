@@ -1,121 +1,276 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+import './App.css'
+import {
+  MissingSystemAudioTrackError,
+  requestMicrophoneCapture,
+  requestSystemAudioCapture,
+} from './lib/capture'
+import {
+  detectBrowserCapabilities,
+  type BrowserCapabilityReport,
+} from './lib/capabilities'
+import { stopSessionMedia, type SessionTrack } from './lib/mediaLifecycle'
+import { openFloatingWidget, type PictureInPictureApi } from './lib/pictureInPicture'
+
+type AppMediaDevices = Pick<MediaDevices, 'getDisplayMedia' | 'getUserMedia'>
+type CaptureStatus = 'idle' | 'requesting' | 'active' | 'error'
+
+type AppProps = {
+  capabilityReport?: BrowserCapabilityReport
+  mediaDevices?: AppMediaDevices
+  pictureInPictureApi?: PictureInPictureApi
+}
+
+function getDefaultMediaDevices(): AppMediaDevices | undefined {
+  return typeof navigator === 'undefined' ? undefined : navigator.mediaDevices
+}
+
+function getDefaultPictureInPictureApi(): PictureInPictureApi | undefined {
+  if (typeof window === 'undefined') {
+    return undefined
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    window as Window & { documentPictureInPicture?: PictureInPictureApi }
+  ).documentPictureInPicture
+}
+
+function describeCaptureError(error: unknown, fallback: string): string {
+  if (error instanceof MissingSystemAudioTrackError) {
+    return 'No audio track arrived. Share a screen and enable Share system audio.'
+  }
+
+  if (error instanceof DOMException && error.name === 'NotAllowedError') {
+    return 'Permission was not granted. You can try again when ready.'
+  }
+
+  return fallback
+}
+
+function App({
+  capabilityReport,
+  mediaDevices = getDefaultMediaDevices(),
+  pictureInPictureApi = getDefaultPictureInPictureApi(),
+}: AppProps) {
+  const report = capabilityReport ?? detectBrowserCapabilities()
+  const [setupStarted, setSetupStarted] = useState(false)
+  const [systemStatus, setSystemStatus] = useState<CaptureStatus>('idle')
+  const [microphoneStatus, setMicrophoneStatus] = useState<CaptureStatus>('idle')
+  const [systemTracks, setSystemTracks] = useState<SessionTrack[]>([])
+  const [microphoneTracks, setMicrophoneTracks] = useState<SessionTrack[]>([])
+  const [notice, setNotice] = useState<string | undefined>()
+
+  const startSystemAudio = async () => {
+    if (!mediaDevices) {
+      setSystemStatus('error')
+      setNotice('This browser does not expose capture controls.')
+      return
+    }
+
+    setNotice(undefined)
+    setSystemStatus('requesting')
+
+    try {
+      const capture = await requestSystemAudioCapture({
+        getDisplayMedia: (options) => mediaDevices.getDisplayMedia(options),
+      })
+      setSystemTracks(capture.allTracks)
+      setSystemStatus('active')
+    } catch (error) {
+      setSystemStatus('error')
+      setNotice(describeCaptureError(error, 'Could not start shared audio. Try again.'))
+    }
+  }
+
+  const startMicrophone = async () => {
+    if (!mediaDevices) {
+      setMicrophoneStatus('error')
+      setNotice('This browser does not expose microphone controls.')
+      return
+    }
+
+    setNotice(undefined)
+    setMicrophoneStatus('requesting')
+
+    try {
+      const capture = await requestMicrophoneCapture({
+        getUserMedia: (options) => mediaDevices.getUserMedia(options),
+      })
+      setMicrophoneTracks(capture.allTracks)
+      setMicrophoneStatus('active')
+    } catch (error) {
+      setMicrophoneStatus('error')
+      setNotice(describeCaptureError(error, 'Could not start the microphone. Try again.'))
+    }
+  }
+
+  const endSession = async () => {
+    await stopSessionMedia([...systemTracks, ...microphoneTracks])
+    setSystemTracks([])
+    setMicrophoneTracks([])
+    setSystemStatus('idle')
+    setMicrophoneStatus('idle')
+    setSetupStarted(false)
+    setNotice('Session ended. Audio capture is off.')
+  }
+
+  const openWidget = async () => {
+    if (!pictureInPictureApi) {
+      setNotice('This browser cannot open the floating widget. Use the compact page instead.')
+      return
+    }
+
+    try {
+      await openFloatingWidget(pictureInPictureApi, {
+        microphoneReady: microphoneStatus === 'active',
+        systemAudioActive: systemStatus === 'active',
+      })
+      setNotice(undefined)
+    } catch {
+      setNotice('Could not open the floating widget. You can keep using the compact page.')
+    }
+  }
+
+  const canRequestCapture = report.canStartSession && Boolean(mediaDevices)
+  const systemLabel =
+    systemStatus === 'active' ? 'Listening to shared audio' : 'Game / Discord audio'
+  const microphoneLabel =
+    microphoneStatus === 'active' ? 'Microphone ready' : 'Your microphone'
+
+  return (
+    <main className="app-shell">
+      <section className="intro-panel" aria-labelledby="app-title">
+        <p className="eyebrow">LIVE LANGUAGE WIDGET</p>
+        <h1 id="app-title">WANGAI</h1>
+        <p className="intro-copy">
+          Understand the call, reply in your language, and keep the game in focus.
+        </p>
+        <div className="promise-row" aria-label="Product boundaries">
+          <span>External audio only</span>
+          <span>•</span>
+          <span>No game hooks</span>
         </div>
+      </section>
+
+      <section className="widget-card" aria-labelledby="session-title">
+        <div className="widget-topline">
+          <div>
+            <p className="eyebrow">SESSION</p>
+            <h2 id="session-title">Ready when you are</h2>
+          </div>
+          <span className={`status-pill ${systemStatus === 'active' ? 'is-active' : ''}`}>
+            <span aria-hidden="true" className="status-dot" />
+            {systemStatus === 'active' ? 'Listening' : 'Private'}
+          </span>
+        </div>
+
+        {!setupStarted ? (
+          <div className="welcome-state">
+            <div className="conversation-preview" aria-hidden="true">
+              <div className="message message-incoming">
+                <strong>Join us at the north gate.</strong>
+                <span>ไปรวมกันที่ประตูเหนือ</span>
+              </div>
+              <div className="message message-outgoing">
+                <strong>On my way.</strong>
+                <span>กำลังไป</span>
+              </div>
+            </div>
+            <button
+              className="primary-button"
+              type="button"
+              disabled={!canRequestCapture}
+              onClick={() => setSetupStarted(true)}
+            >
+              Start session
+            </button>
+            {!report.canStartSession && (
+              <p className="inline-note">Check browser support below before starting.</p>
+            )}
+          </div>
+        ) : (
+          <div className="setup-state">
+            <p className="setup-intro">Enable the two sources you want WANGAI to use.</p>
+
+            <div className={`source-row ${systemStatus === 'active' ? 'is-active' : ''}`}>
+              <div className="source-copy">
+                <span className="source-kicker">INCOMING</span>
+                <strong>{systemLabel}</strong>
+                <span>Choose a screen, then enable system audio.</span>
+              </div>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={!canRequestCapture || systemStatus === 'requesting' || systemStatus === 'active'}
+                onClick={startSystemAudio}
+              >
+                {systemStatus === 'requesting' ? 'Waiting…' : systemStatus === 'active' ? 'Connected' : 'Share game audio'}
+              </button>
+            </div>
+
+            <div className={`source-row ${microphoneStatus === 'active' ? 'is-active' : ''}`}>
+              <div className="source-copy">
+                <span className="source-kicker">OUTGOING</span>
+                <strong>{microphoneLabel}</strong>
+                <span>Used only when you choose to reply.</span>
+              </div>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={!canRequestCapture || microphoneStatus === 'requesting' || microphoneStatus === 'active'}
+                onClick={startMicrophone}
+              >
+                {microphoneStatus === 'requesting' ? 'Waiting…' : microphoneStatus === 'active' ? 'Connected' : 'Enable microphone'}
+              </button>
+            </div>
+
+            <div className="widget-readiness" role="status">
+              <span className="status-dot" aria-hidden="true" />
+              {report.canOpenFloatingWidget
+                ? 'Floating widget is available in this browser.'
+                : 'Floating widget will use the compact page fallback.'}
+            </div>
+            {report.canOpenFloatingWidget && (
+              <button className="widget-open-button" type="button" onClick={openWidget}>
+                Open floating widget
+              </button>
+            )}
+            <button className="text-button" type="button" onClick={endSession}>
+              End session
+            </button>
+          </div>
+        )}
+
+        {notice && <p className="notice" role="status">{notice}</p>}
+      </section>
+
+      <section className="capability-panel" aria-labelledby="compatibility-title">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <p className="eyebrow">BROWSER CHECK</p>
+          <h2 id="compatibility-title">Designed for a clean, no-install start.</h2>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+        <ul>
+          <li className={report.canStartSession ? 'is-ready' : 'is-blocked'}>
+            <span>Audio permissions</span>
+            <strong>{report.canStartSession ? 'Ready' : 'Needs attention'}</strong>
+          </li>
+          <li className={report.canOpenFloatingWidget ? 'is-ready' : 'is-blocked'}>
+            <span>Floating widget</span>
+            <strong>{report.canOpenFloatingWidget ? 'Supported' : 'Compact fallback'}</strong>
+          </li>
+          <li className={report.copyBehavior === 'available' ? 'is-ready' : 'is-blocked'}>
+            <span>Copy to chat</span>
+            <strong>{report.copyBehavior === 'available' ? 'Available' : 'Manual fallback'}</strong>
+          </li>
+        </ul>
+        {report.blockers.length > 0 && (
+          <div className="blockers" role="alert">
+            {report.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}
+          </div>
+        )}
       </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   )
 }
 
