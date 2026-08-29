@@ -45,6 +45,7 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 .message span:lang(th), .translated-text:lang(th) { color: #c8cbd5; font-size: 13px; font-weight: 500; line-height: 1.65; opacity: 1; }
 .message-incoming { background: #25272f; color: #f3f4f8; justify-self: start; }
 .message-outgoing { animation-delay: 40ms; background: #64c58c; color: #102118; justify-self: end; }
+.message-outgoing span:lang(th) { color: #102118; font-weight: 700; opacity: .82; }
 
 .primary-button, .secondary-button, .widget-open-button, .text-button { border: 0; transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out; }
 .primary-button:hover:not(:disabled), .secondary-button:hover:not(:disabled), .widget-open-button:hover:not(:disabled) { transform: translateY(-1px); }
