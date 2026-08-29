@@ -13,6 +13,7 @@ describe('openFloatingWidget', () => {
     )
 
     expect(requestWindow).toHaveBeenCalledWith({ height: 220, width: 360 })
+    expect(pipDocument.body.textContent).toContain('WA-NGAI')
     expect(pipDocument.body.textContent).toContain('Listening to shared audio')
     expect(pipDocument.body.textContent).toContain('Mic ready')
     expect(pipDocument.querySelector('[data-wangai-widget]')).not.toBeNull()

@@ -141,23 +141,15 @@ function App({
   return (
     <main className="app-shell">
       <section className="intro-panel" aria-labelledby="app-title">
-        <p className="eyebrow">LIVE LANGUAGE WIDGET</p>
-        <h1 id="app-title">WANGAI</h1>
-        <p className="intro-copy">
-          Understand the call, reply in your language, and keep the game in focus.
-        </p>
-        <div className="promise-row" aria-label="Product boundaries">
-          <span>External audio only</span>
-          <span>•</span>
-          <span>No game hooks</span>
-        </div>
+        <p className="eyebrow">LIVE TRANSLATION</p>
+        <h1 id="app-title">WA-NGAI <span>ว่าไง</span></h1>
       </section>
 
       <section className="widget-card" aria-labelledby="session-title">
         <div className="widget-topline">
           <div>
             <p className="eyebrow">SESSION</p>
-            <h2 id="session-title">Ready when you are</h2>
+            <h2 id="session-title">{setupStarted ? 'Your live space' : 'Ready when you are'}</h2>
           </div>
           <span className={`status-pill ${systemStatus === 'active' ? 'is-active' : ''}`}>
             <span aria-hidden="true" className="status-dot" />
@@ -205,7 +197,7 @@ function App({
                 disabled={!canRequestCapture || systemStatus === 'requesting' || systemStatus === 'active'}
                 onClick={startSystemAudio}
               >
-                {systemStatus === 'requesting' ? 'Waiting…' : systemStatus === 'active' ? 'Connected' : 'Share game audio'}
+                {systemStatus === 'requesting' ? 'Waiting…' : systemStatus === 'active' ? 'Connected' : 'Share audio'}
               </button>
             </div>
 
@@ -225,15 +217,9 @@ function App({
               </button>
             </div>
 
-            <div className="widget-readiness" role="status">
-              <span className="status-dot" aria-hidden="true" />
-              {report.canOpenFloatingWidget
-                ? 'Floating widget is available in this browser.'
-                : 'Floating widget will use the compact page fallback.'}
-            </div>
             {report.canOpenFloatingWidget && (
               <button className="widget-open-button" type="button" onClick={openWidget}>
-                Open floating widget
+                Open overlay
               </button>
             )}
             <button className="text-button" type="button" onClick={endSession}>
@@ -243,32 +229,6 @@ function App({
         )}
 
         {notice && <p className="notice" role="status">{notice}</p>}
-      </section>
-
-      <section className="capability-panel" aria-labelledby="compatibility-title">
-        <div>
-          <p className="eyebrow">BROWSER CHECK</p>
-          <h2 id="compatibility-title">Designed for a clean, no-install start.</h2>
-        </div>
-        <ul>
-          <li className={report.canStartSession ? 'is-ready' : 'is-blocked'}>
-            <span>Audio permissions</span>
-            <strong>{report.canStartSession ? 'Ready' : 'Needs attention'}</strong>
-          </li>
-          <li className={report.canOpenFloatingWidget ? 'is-ready' : 'is-blocked'}>
-            <span>Floating widget</span>
-            <strong>{report.canOpenFloatingWidget ? 'Supported' : 'Compact fallback'}</strong>
-          </li>
-          <li className={report.copyBehavior === 'available' ? 'is-ready' : 'is-blocked'}>
-            <span>Copy to chat</span>
-            <strong>{report.copyBehavior === 'available' ? 'Available' : 'Manual fallback'}</strong>
-          </li>
-        </ul>
-        {report.blockers.length > 0 && (
-          <div className="blockers" role="alert">
-            {report.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}
-          </div>
-        )}
       </section>
     </main>
   )

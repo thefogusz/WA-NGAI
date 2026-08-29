@@ -24,12 +24,14 @@ describe('WANGAI feasibility harness', () => {
 
     render(<App capabilityReport={readyReport} mediaDevices={supportedMediaDevices as never} />)
 
-    expect(screen.getByRole('heading', { name: 'WANGAI' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'WA-NGAI ว่าไง' })).toBeVisible()
     expect(screen.queryByText('xAI API key')).not.toBeInTheDocument()
+    expect(screen.queryByText('External audio only')).not.toBeInTheDocument()
+    expect(screen.queryByText('No game hooks')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Start session' }))
 
-    expect(screen.getByRole('button', { name: 'Share game audio' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Share audio' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Enable microphone' })).toBeVisible()
   })
 
@@ -51,7 +53,7 @@ describe('WANGAI feasibility harness', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Start session' }))
-    await user.click(screen.getByRole('button', { name: 'Share game audio' }))
+    await user.click(screen.getByRole('button', { name: 'Share audio' }))
 
     expect(await screen.findByText('Listening to shared audio')).toBeVisible()
     expect(getDisplayMedia).toHaveBeenCalledOnce()
@@ -72,7 +74,7 @@ describe('WANGAI feasibility harness', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Start session' }))
-    await user.click(screen.getByRole('button', { name: 'Open floating widget' }))
+    await user.click(screen.getByRole('button', { name: 'Open overlay' }))
 
     expect(requestWindow).toHaveBeenCalledOnce()
   })
