@@ -50,10 +50,6 @@ function getDefaultPictureInPictureApi(): PictureInPictureApi | undefined {
   ).documentPictureInPicture
 }
 
-function parseGlossary(value: string): string[] {
-  return value.split(',').map((term) => term.trim()).filter(Boolean).slice(0, 20)
-}
-
 function supportsChunkedStt() {
   return typeof MediaRecorder !== 'undefined' && typeof MediaStream !== 'undefined'
 }
@@ -99,7 +95,6 @@ function App({
   const [myLanguage, setMyLanguage] = useState<SupportedLanguage>('th')
   const [shortcut, setShortcut] = useState<string | undefined>()
   const [shortcutCapture, setShortcutCapture] = useState(false)
-  const [gameGlossary, setGameGlossary] = useState('')
   const [vadProfile, setVadProfile] = useState<VadProfile>('game')
   const [incomingText, setIncomingText] = useState<string | undefined>()
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
@@ -166,7 +161,7 @@ function App({
             } catch { setNotice('Translation is temporarily unavailable.') }
             finally { if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening') }
           }
-        }, { sendingOnStart: true, glossary: parseGlossary(gameGlossary), vadProfile })
+        }, { sendingOnStart: true, vadProfile })
       } else if (typeof window.AudioContext !== 'undefined') {
         systemSttRef.current = await startLiveStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
           if (event.type === 'error') {
@@ -239,7 +234,7 @@ function App({
               }
             } catch { setNotice('Translation is temporarily unavailable.') }
           }
-        }, { glossary: parseGlossary(gameGlossary) })
+        })
       } else if (typeof window.AudioContext !== 'undefined') {
         microphoneSttRef.current = await startLiveStt(capture.stream as MediaStream, myLanguage, async (event: TranscriptEvent) => {
           if (event.type !== 'transcript.partial' || !event.text) return
@@ -473,17 +468,6 @@ function App({
                 {shortcutCapture ? 'Press a key' : shortcut ? shortcut : 'Set'}
               </button>
             </div>
-            <label className="glossary-field">
-              <span className="source-kicker">GAME TERMS <em>optional</em></span>
-              <input
-                aria-label="Game terms"
-                maxLength={500}
-                onChange={(event) => setGameGlossary(event.target.value)}
-                placeholder="Apex, north gate, teammate"
-                value={gameGlossary}
-              />
-              <small>Comma-separated names help spelling; kept only in this session.</small>
-            </label>
             <label className="audio-profile-field">
               <span className="source-kicker">INCOMING AUDIO</span>
               <select aria-label="Incoming audio" onChange={(event) => setVadProfile(event.target.value as VadProfile)} value={vadProfile}>

@@ -94,6 +94,7 @@ describe('WANGAI feasibility harness', () => {
     render(<App capabilityReport={readyReport} mediaDevices={supportedMediaDevices as never} />)
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.queryByLabelText('Game terms')).not.toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText('They speak'), 'th')
     await user.selectOptions(screen.getByLabelText('I speak'), 'en')
 
