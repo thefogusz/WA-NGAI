@@ -35,7 +35,7 @@ These limits are validation gates, not hidden future problems.
 
 ## Current status
 
-Goal 0 feasibility harness is implemented in `apps/web`: compact no-key setup UI, permission-gated game-audio and microphone capture primitives, session cleanup, and a 360 × 220 Document Picture-in-Picture widget. It does not yet stream audio to xAI or call Grok.
+The local MVP is implemented in `apps/web`: permission-gated game-audio and microphone capture, PCM16 streaming speech-to-text, final-utterance translation, right-aligned reply bubbles with explicit Copy, push-to-talk, and a 360 × 220 Document Picture-in-Picture widget.
 
 The local API boundary is implemented in `apps/api`. It reads `XAI_API_KEY` only from the ignored root `.env.local` file and exposes a local-only `POST /v1/translate` proxy. It is not a public deployment and does not yet have user authentication or live audio streaming.
 
