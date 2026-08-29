@@ -99,6 +99,7 @@ function App({
   const [vadProfile, setVadProfile] = useState<VadProfile>('game')
   const [incomingText, setIncomingText] = useState<string | undefined>()
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
+  const [incomingPendingText, setIncomingPendingText] = useState<string | undefined>()
   const [incomingAudioLevel, setIncomingAudioLevel] = useState(0)
   const [incomingStage, setIncomingStage] = useState<IncomingStage>('listening')
   const [replyText, setReplyText] = useState<string | undefined>()
@@ -119,13 +120,14 @@ function App({
       const context = incomingHistoryRef.current
       incomingHistoryRef.current = appendCommittedText(context, subtitle)
       const requestId = ++incomingTranslationRequestRef.current
-      setIncomingText(subtitle)
+      setIncomingPendingText(subtitle)
       setIncomingStage('translating')
       try {
         const translation = await translateText(subtitle, theirLanguage, theirLanguage === 'en' ? 'th' : 'en', context)
         if (requestId === incomingTranslationRequestRef.current) {
           setIncomingText(translation.sourceText)
           setIncomingTranslation(translation.text)
+          setIncomingPendingText(undefined)
         }
       } catch {
         setNotice('Translation is temporarily unavailable.')
@@ -171,7 +173,7 @@ function App({
           if (event.is_final && event.speech_final) {
             await commitIncomingTranscript(event.text)
           } else {
-            setIncomingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
+            setIncomingPendingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
           }
         }, { sendingOnStart: true, vadProfile })
       } else if (typeof window.AudioContext !== 'undefined') {
@@ -182,7 +184,7 @@ function App({
             return
           }
           if (event.type !== 'transcript.partial' || !event.text) return
-          setIncomingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
+          setIncomingPendingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
           if (event.is_final && event.speech_final) {
             await commitIncomingTranscript(event.text)
           }
@@ -300,6 +302,7 @@ function App({
       pipWindowRef.current = await openFloatingWidget(pictureInPictureApi, {
         incomingText,
         incomingTranslation,
+        incomingPendingText,
         microphoneReady: microphoneStatus === 'active',
         replyText,
         replyTranslation,
@@ -386,13 +389,14 @@ function App({
       updateFloatingWidget(pipWindowRef.current, {
         incomingText,
         incomingTranslation,
+        incomingPendingText,
         microphoneReady: microphoneStatus === 'active',
         replyText,
         replyTranslation,
         systemAudioActive: systemStatus === 'active',
       })
     }
-  }, [incomingText, incomingTranslation, microphoneStatus, replyText, replyTranslation, systemStatus])
+  }, [incomingPendingText, incomingText, incomingTranslation, microphoneStatus, replyText, replyTranslation, systemStatus])
 
   return (
     <main className="app-shell">
@@ -533,6 +537,14 @@ function App({
                 <span className="source-kicker">THEM</span>
                 <strong lang={theirLanguage}>{incomingText}</strong>
                 {incomingTranslation && <span className="translated-text" lang={incomingLanguage}>{incomingTranslation}</span>}
+              </div>
+            )}
+
+            {incomingPendingText && (
+              <div className="incoming-pending" aria-live="polite" key={incomingPendingText}>
+                <span className="source-kicker">LIVE</span>
+                <strong lang={theirLanguage}>{incomingPendingText}</strong>
+                <span>Translating…</span>
               </div>
             )}
 

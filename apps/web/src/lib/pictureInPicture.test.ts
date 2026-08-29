@@ -44,5 +44,15 @@ describe('openFloatingWidget', () => {
     expect(reply?.querySelector('strong')?.getAttribute('lang')).toBe('th')
     expect(reply?.textContent).toContain('Translation · On my way.')
     expect(reply?.hasAttribute('hidden')).toBe(false)
+
+    updateFloatingWidget(pipWindow, {
+      incomingText: 'Bridge clear.',
+      incomingPendingText: 'I am crossing now.',
+      microphoneReady: true,
+      systemAudioActive: true,
+    })
+    expect(pipDocument.querySelector('[data-wangai-incoming]')?.textContent).toBe('Bridge clear.')
+    expect(pipDocument.querySelector('[data-wangai-incoming-translation]')?.textContent).toBe('')
+    expect(pipDocument.querySelector('[data-wangai-pending]')?.textContent).toContain('I am crossing now.')
   })
 })

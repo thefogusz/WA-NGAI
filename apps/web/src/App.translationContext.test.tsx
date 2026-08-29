@@ -82,4 +82,38 @@ describe('incoming translation context', () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).text).toBe('I am going to show you all the tests between the skills so you can see what exactly has changed, as some of the nerfs are much bigger than we initially thought.')
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).context).toEqual(['The massive update for Mistrall Hunter has been live.'])
   })
+
+  it('keeps the last completed translation readable while a newer English caption is translating', async () => {
+    const user = userEvent.setup()
+    let resolveSecondTranslation: ((response: Response) => void) | undefined
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ text: 'ไปประตูเหนือ' }), { status: 200 }))
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveSecondTranslation = resolve }))
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('MediaRecorder', class {})
+    vi.stubGlobal('MediaStream', class {})
+
+    render(
+      <App
+        capabilityReport={report}
+        mediaDevices={{
+          getDisplayMedia: vi.fn().mockResolvedValue({ getAudioTracks: () => [{}], getTracks: () => [{}] }),
+          getUserMedia: vi.fn(),
+        } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start session' }))
+    await user.click(screen.getByRole('button', { name: 'Share audio' }))
+    await act(async () => { await emitIncoming?.({ type: 'transcript.final', text: 'Meet at the north gate.', is_final: true, speech_final: true }) })
+    await screen.findByText('ไปประตูเหนือ')
+
+    act(() => { void emitIncoming?.({ type: 'transcript.final', text: 'The bridge is clear.', is_final: true, speech_final: true }) })
+    await screen.findByText('The bridge is clear.')
+    expect(screen.getByText('LIVE')).toBeVisible()
+    expect(screen.getByText('ไปประตูเหนือ')).toBeVisible()
+
+    await act(async () => { resolveSecondTranslation?.(new Response(JSON.stringify({ text: 'สะพานโล่ง' }), { status: 200 })) })
+    await screen.findByText('สะพานโล่ง')
+  })
 })

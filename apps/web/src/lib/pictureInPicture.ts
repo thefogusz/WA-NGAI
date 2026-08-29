@@ -5,6 +5,7 @@ export type PictureInPictureApi = {
 export type FloatingWidgetSnapshot = {
   incomingText?: string
   incomingTranslation?: string
+  incomingPendingText?: string
   systemAudioActive: boolean
   microphoneReady: boolean
   replyText?: string
@@ -24,6 +25,7 @@ const widgetStyles = `
   .translation { color: #a8aab4; display: block; font-size: 12px; font-weight: 400; margin-top: 4px; }
   :lang(th) { font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif; }
   .translation:lang(th), .message strong:lang(th) { color: #d1d4de; font-size: 13px; font-weight: 500; line-height: 1.65; }
+  .pending { border-left: 2px solid rgba(117, 213, 160, .72); color: #d7d9e0; padding-left: 10px; }
   .reply { background: #1d2922; margin-left: 42px; text-align: right; }
   .footer { color: #878a95; display: flex; font-size: 11px; justify-content: space-between; margin-top: 12px; }
 `
@@ -42,6 +44,7 @@ export async function openFloatingWidget(
   root.innerHTML = `
     <div class="topline"><span>WA-NGAI <span class="brand-thai" lang="th">ว่าไง</span></span><span class="live"><span class="dot"></span>${snapshot.systemAudioActive ? 'Listening' : 'Ready'}</span></div>
     <div class="message"><strong data-wangai-incoming>${snapshot.systemAudioActive ? 'Listening to shared audio' : 'Waiting for shared audio'}</strong><span class="translation" data-wangai-incoming-translation lang="th">${snapshot.systemAudioActive ? 'แปลข้อความเมื่อการเชื่อมต่อพร้อม' : 'เริ่มจากกดแชร์เสียงเกม'}</span></div>
+    <div class="message pending" data-wangai-pending hidden><strong></strong><span class="translation">Translating…</span></div>
     <div class="message reply" data-wangai-reply hidden><strong></strong><span class="translation"></span></div>
     <div class="footer"><span>${snapshot.microphoneReady ? 'Mic ready' : 'Mic off'}</span><span>External only</span></div>
   `
@@ -57,10 +60,15 @@ export function updateFloatingWidget(pipWindow: Window, snapshot: FloatingWidget
   const document = pipWindow.document
   const incoming = document.querySelector<HTMLElement>('[data-wangai-incoming]')
   const incomingTranslation = document.querySelector<HTMLElement>('[data-wangai-incoming-translation]')
+  const pending = document.querySelector<HTMLElement>('[data-wangai-pending]')
   const reply = document.querySelector<HTMLElement>('[data-wangai-reply]')
 
   if (incoming && snapshot.incomingText) setWidgetText(incoming, snapshot.incomingText)
-  if (incomingTranslation && snapshot.incomingTranslation) setWidgetText(incomingTranslation, snapshot.incomingTranslation)
+  if (incomingTranslation) setWidgetText(incomingTranslation, snapshot.incomingTranslation ?? '')
+  if (pending) {
+    pending.hidden = !snapshot.incomingPendingText
+    if (snapshot.incomingPendingText) setWidgetText(pending.querySelector('strong')!, snapshot.incomingPendingText)
+  }
   if (reply && (snapshot.replyText || snapshot.replyTranslation)) {
     reply.hidden = false
     setWidgetText(reply.querySelector('strong')!, snapshot.replyText ?? snapshot.replyTranslation ?? '')

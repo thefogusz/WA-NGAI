@@ -86,6 +86,12 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 .copy-button { background: transparent; border: 0; color: #7dd9a2; font-size: 11px; font-weight: 700; justify-self: end; min-height: 28px; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; }
 .incoming-preview { animation: incoming-arrive 210ms cubic-bezier(.2, .8, .2, 1) both; background: #25272f; border-radius: 14px; display: grid; gap: 4px; max-width: 80%; min-width: 176px; padding: 11px 13px; }
 .incoming-preview strong { color: #eff0f4; font-size: 14px; }
+.incoming-preview, .incoming-pending { overflow: hidden; position: relative; }
+.incoming-preview::after, .incoming-pending::after { animation: caption-sweep 440ms cubic-bezier(.2, .8, .2, 1) both; background: linear-gradient(105deg, transparent 34%, rgba(180, 244, 204, .13) 50%, transparent 66%); content: ''; inset: 0; pointer-events: none; position: absolute; transform: translateX(-115%); }
+.incoming-pending { animation: caption-arrive 190ms cubic-bezier(.2, .8, .2, 1) both; border-left: 2px solid rgba(112, 217, 155, .65); color: #c7cad4; display: grid; gap: 3px; margin-top: -3px; padding: 7px 0 7px 10px; }
+.incoming-pending .source-kicker { color: #74d79d; }
+.incoming-pending strong { color: #e4e6ec; font-size: 13px; font-weight: 600; line-height: 1.4; }
+.incoming-pending > span:last-child { color: #8e929d; font-size: 11px; }
 .inline-note, .notice { color: #a5a7b1; font-size: 12px; line-height: 1.45; margin: 0; text-align: center; }
 .notice { background: rgba(178, 130, 42, .1); border: 1px solid rgba(218, 175, 92, .24); border-radius: 11px; color: #e4ca8c; margin-top: 13px; padding: 9px 11px; text-align: left; }
 
@@ -101,6 +107,8 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 @keyframes signal-blink { 0%, 100% { opacity: .45; transform: scale(.86); } 50% { opacity: 1; transform: scale(1); } }
 @keyframes talk-ring { from { opacity: .85; transform: scale(.94); } to { opacity: 0; transform: scale(1.22); } }
 @keyframes incoming-arrive { from { opacity: 0; transform: translateX(-7px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes caption-arrive { from { opacity: 0; transform: translateX(-8px); } 65% { opacity: 1; transform: translateX(1px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes caption-sweep { from { transform: translateX(-115%); } to { transform: translateX(115%); } }
 @keyframes reply-arrive { from { opacity: 0; transform: translateX(7px); } to { opacity: 1; transform: translateX(0); } }
 
 @media (max-width: 420px) { .app-shell { padding-inline: 12px; } .widget-card { border-radius: 20px; padding: 17px; } .source-row { align-items: flex-start; flex-direction: column; } .secondary-button { width: 100%; } }
