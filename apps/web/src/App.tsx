@@ -14,6 +14,7 @@ import { stopSessionMedia, type SessionTrack } from './lib/mediaLifecycle'
 import { openFloatingWidget, updateFloatingWidget, type PictureInPictureApi } from './lib/pictureInPicture'
 import { startChunkedStt } from './lib/chunkedStt'
 import { startLiveStt, type LiveSttSession, type TranscriptEvent } from './lib/liveStt'
+import { splitSubtitleSegments } from './lib/subtitleSegments'
 import { appendCommittedText } from './lib/translationContext'
 import type { VadProfile } from './lib/sileroVad'
 import { startAudioMeter, type AudioMeter } from './lib/audioMeter'
@@ -113,6 +114,27 @@ function App({
   const pipWindowRef = useRef<Window | null>(null)
   const [notice, setNotice] = useState<string | undefined>()
 
+  const commitIncomingTranscript = async (text: string) => {
+    for (const subtitle of splitSubtitleSegments(text, theirLanguage)) {
+      const context = incomingHistoryRef.current
+      incomingHistoryRef.current = appendCommittedText(context, subtitle)
+      const requestId = ++incomingTranslationRequestRef.current
+      setIncomingText(subtitle)
+      setIncomingStage('translating')
+      try {
+        const translation = await translateText(subtitle, theirLanguage, theirLanguage === 'en' ? 'th' : 'en', context)
+        if (requestId === incomingTranslationRequestRef.current) {
+          setIncomingText(translation.sourceText)
+          setIncomingTranslation(translation.text)
+        }
+      } catch {
+        setNotice('Translation is temporarily unavailable.')
+      } finally {
+        if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening')
+      }
+    }
+  }
+
   const startSystemAudio = async () => {
     if (!mediaDevices) {
       setSystemStatus('error')
@@ -146,20 +168,10 @@ function App({
             return
           }
           if (!event.text) return
-          setIncomingText(event.text)
           if (event.is_final && event.speech_final) {
-            const context = incomingHistoryRef.current
-            incomingHistoryRef.current = appendCommittedText(context, event.text)
-            const requestId = ++incomingTranslationRequestRef.current
-            setIncomingStage('translating')
-            try {
-              const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
-              if (requestId === incomingTranslationRequestRef.current) {
-                setIncomingText(translation.sourceText)
-                setIncomingTranslation(translation.text)
-              }
-            } catch { setNotice('Translation is temporarily unavailable.') }
-            finally { if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening') }
+            await commitIncomingTranscript(event.text)
+          } else {
+            setIncomingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
           }
         }, { sendingOnStart: true, vadProfile })
       } else if (typeof window.AudioContext !== 'undefined') {
@@ -170,20 +182,9 @@ function App({
             return
           }
           if (event.type !== 'transcript.partial' || !event.text) return
-          setIncomingText(event.text)
+          setIncomingText(splitSubtitleSegments(event.text, theirLanguage).at(-1))
           if (event.is_final && event.speech_final) {
-            const context = incomingHistoryRef.current
-            incomingHistoryRef.current = appendCommittedText(context, event.text)
-            const requestId = ++incomingTranslationRequestRef.current
-            setIncomingStage('translating')
-            try {
-              const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
-              if (requestId === incomingTranslationRequestRef.current) {
-                setIncomingText(translation.sourceText)
-                setIncomingTranslation(translation.text)
-              }
-            } catch { setNotice('Translation is temporarily unavailable.') }
-            finally { if (requestId === incomingTranslationRequestRef.current) setIncomingStage('listening') }
+            await commitIncomingTranscript(event.text)
           }
         }, { sendingOnStart: true })
       }

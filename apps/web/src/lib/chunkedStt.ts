@@ -5,13 +5,14 @@ type ChunkedSttOptions = {
   glossary?: string[]
   sendingOnStart?: boolean
   vadProfile?: VadProfile
-  startDetector?: (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile) => Promise<SpeechDetector>
+  startDetector?: (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile, onSpeechStart?: () => void) => Promise<SpeechDetector>
 }
 
 const MIN_REQUEST_INTERVAL_MS = 6_000
+const MAX_CONTINUOUS_SPEECH_MS = 6_500
 
-const startDefaultDetector = (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile) =>
-  startSileroVad(stream, onSegment, undefined, profile)
+const startDefaultDetector = (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile, onSpeechStart?: () => void) =>
+  startSileroVad(stream, onSegment, undefined, profile, onSpeechStart)
 
 function recorderMimeType() {
   return MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : undefined
@@ -50,14 +51,38 @@ export async function startChunkedStt(
   let sending = sendingOnStart
   let stopped = false
   let lastRequestAt = Number.NEGATIVE_INFINITY
-  let queuedBlob: Blob | undefined
+  const queuedBlobs: Blob[] = []
+  let queuedUploadTimer: ReturnType<typeof setTimeout> | undefined
   let uploading = false
   let detector: SpeechDetector | undefined
+  let continuousSpeechTimer: ReturnType<typeof setTimeout> | undefined
+
+  const clearContinuousSpeechTimer = () => {
+    if (continuousSpeechTimer) clearTimeout(continuousSpeechTimer)
+    continuousSpeechTimer = undefined
+  }
+
+  const beginContinuousSpeechTimer = () => {
+    clearContinuousSpeechTimer()
+    continuousSpeechTimer = setTimeout(() => {
+      void detector?.flush?.()
+    }, MAX_CONTINUOUS_SPEECH_MS)
+  }
 
   const uploadNext = async () => {
-    if (uploading || !queuedBlob || stopped) return
-    const blob = queuedBlob
-    queuedBlob = undefined
+    if (uploading || queuedBlobs.length === 0 || stopped) return
+    const waitMs = Math.max(0, MIN_REQUEST_INTERVAL_MS - (Date.now() - lastRequestAt))
+    if (waitMs > 0) {
+      if (!queuedUploadTimer) {
+        queuedUploadTimer = setTimeout(() => {
+          queuedUploadTimer = undefined
+          void uploadNext()
+        }, waitMs)
+      }
+      return
+    }
+
+    const blob = queuedBlobs.shift()!
     uploading = true
     lastRequestAt = Date.now()
     onEvent({ type: 'transcript.processing' })
@@ -68,13 +93,13 @@ export async function startChunkedStt(
       onEvent({ type: 'error' })
     } finally {
       uploading = false
-      if (queuedBlob) void uploadNext()
+      if (queuedBlobs.length > 0) void uploadNext()
     }
   }
 
   const enqueue = (blob: Blob) => {
-    if (stopped || blob.size === 0 || Date.now() - lastRequestAt < MIN_REQUEST_INTERVAL_MS) return
-    queuedBlob = blob
+    if (stopped || blob.size === 0) return
+    queuedBlobs.push(blob)
     void uploadNext()
   }
 
@@ -90,8 +115,9 @@ export async function startChunkedStt(
 
   if (sendingOnStart) {
     detector = await startDetector(audioStream, (segment) => {
+      clearContinuousSpeechTimer()
       if (sending) enqueue(segment)
-    }, vadProfile)
+    }, vadProfile, beginContinuousSpeechTimer)
   }
 
   return {
@@ -106,6 +132,10 @@ export async function startChunkedStt(
     stop: () => {
       stopped = true
       sending = false
+      clearContinuousSpeechTimer()
+      if (queuedUploadTimer) clearTimeout(queuedUploadTimer)
+      queuedUploadTimer = undefined
+      queuedBlobs.length = 0
       if (recorder.state !== 'inactive') recorder.stop()
       void detector?.stop()
     },

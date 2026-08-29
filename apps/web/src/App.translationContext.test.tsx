@@ -48,4 +48,38 @@ describe('incoming translation context', () => {
 
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).context).toEqual(['Meet at the north gate.'])
   })
+
+  it('translates a long incoming turn as short subtitle-sized chunks in sequence', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ text: 'คำแปลสั้น' }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('MediaRecorder', class {})
+    vi.stubGlobal('MediaStream', class {})
+
+    render(
+      <App
+        capabilityReport={report}
+        mediaDevices={{
+          getDisplayMedia: vi.fn().mockResolvedValue({ getAudioTracks: () => [{}], getTracks: () => [{}] }),
+          getUserMedia: vi.fn(),
+        } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start session' }))
+    await user.click(screen.getByRole('button', { name: 'Share audio' }))
+
+    await act(async () => {
+      emitIncoming?.({
+        type: 'transcript.final',
+        text: 'The massive update for Mistrall Hunter has been live. I am going to show you all the tests between the skills so you can see what exactly has changed, as some of the nerfs are much bigger than we initially thought. Let us begin with Hammermerk.',
+        is_final: true,
+        speech_final: true,
+      })
+    })
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4))
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).text).toBe('I am going to show you all the tests between the skills so you can see what exactly has changed,')
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).context).toEqual(['The massive update for Mistrall Hunter has been live.'])
+  })
 })

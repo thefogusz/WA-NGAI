@@ -63,4 +63,54 @@ describe('startChunkedStt', () => {
     session.stop()
     expect(stopDetector).toHaveBeenCalledOnce()
   })
+
+  it('flushes a continuous speaking turn into a new chunk instead of waiting for a long silence', async () => {
+    vi.useFakeTimers()
+    const flush = vi.fn().mockResolvedValue(undefined)
+    let onSpeechStart: (() => void) | undefined
+    const startDetector = vi.fn(async (_stream, _onSegment, _profile, notifySpeechStart) => {
+      onSpeechStart = notifySpeechStart
+      return { flush, stop: vi.fn().mockResolvedValue(undefined) }
+    })
+    vi.stubGlobal('MediaRecorder', FakeRecorder)
+    vi.stubGlobal('MediaStream', class { constructor() {} })
+
+    await startChunkedStt(
+      { getAudioTracks: () => [{}] } as unknown as MediaStream,
+      'en',
+      vi.fn(),
+      { sendingOnStart: true, startDetector },
+    )
+
+    onSpeechStart?.()
+    await vi.advanceTimersByTimeAsync(6_500)
+    expect(flush).toHaveBeenCalledOnce()
+  })
+
+  it('queues the next speech segment until the cost guard interval has passed instead of dropping it', async () => {
+    vi.useFakeTimers()
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ text: 'North gate.' }), { status: 200 }))
+    let onSegment: ((segment: Blob) => void) | undefined
+    const startDetector = vi.fn(async (_stream, emitSegment) => {
+      onSegment = emitSegment
+      return { stop: vi.fn().mockResolvedValue(undefined) }
+    })
+    vi.stubGlobal('MediaRecorder', FakeRecorder)
+    vi.stubGlobal('MediaStream', class { constructor() {} })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await startChunkedStt(
+      { getAudioTracks: () => [{}] } as unknown as MediaStream,
+      'en',
+      vi.fn(),
+      { sendingOnStart: true, startDetector },
+    )
+
+    onSegment?.(new Blob(['first'], { type: 'audio/wav' }))
+    await vi.advanceTimersByTimeAsync(0)
+    onSegment?.(new Blob(['second'], { type: 'audio/wav' }))
+    await vi.advanceTimersByTimeAsync(6_000)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
 })

@@ -3,6 +3,7 @@ import { createSpeechSegmentBlob } from './speechSegment'
 type MicVadFactory = Pick<typeof import('@ricky0123/vad-web').MicVAD, 'new'>
 
 export type SpeechDetector = {
+  flush?: () => Promise<void>
   stop: () => Promise<void>
 }
 
@@ -24,6 +25,7 @@ export async function startSileroVad(
   onSegment: (segment: Blob) => void,
   micVad?: MicVadFactory,
   profile: VadProfile = 'game',
+  onSpeechStart?: () => void,
 ): Promise<SpeechDetector> {
   const factory = micVad ?? (await import('@ricky0123/vad-web')).MicVAD
   const detector = await factory.new({
@@ -31,13 +33,21 @@ export async function startSileroVad(
     getStream: async () => stream,
     model: 'v5',
     onSpeechEnd: (audio) => onSegment(createSpeechSegmentBlob(audio)),
+    onSpeechRealStart: () => onSpeechStart?.(),
     onnxWASMBasePath: '/vad/',
     pauseStream: async () => {},
     resumeStream: async () => stream,
     startOnLoad: false,
+    submitUserSpeechOnPause: true,
     ...vadProfileOptions[profile],
   })
   await detector.start()
 
-  return { stop: () => detector.destroy() }
+  return {
+    flush: async () => {
+      await detector.pause()
+      await detector.start()
+    },
+    stop: () => detector.destroy(),
+  }
 }
