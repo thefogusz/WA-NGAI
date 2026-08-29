@@ -426,7 +426,7 @@ function App({
                 <div className="ptt-copy">
                   <span className="source-kicker">THAI REPLY</span>
                   <strong id="ptt-title">{pttActive ? `Listening in ${languageLabels[myLanguage]}` : `Hold to speak ${languageLabels[myLanguage]}`}</strong>
-                  <span>{pttActive ? 'Thai text is appearing live. Release to translate.' : 'Your Thai text appears first. Translation follows.'}</span>
+                  <span>{pttActive ? `${languageLabels[myLanguage]} text is appearing live. Release to translate.` : `Your ${languageLabels[myLanguage]} text appears first. Translation follows.`}</span>
                 </div>
                 <button
                   aria-label={pttActive ? `Listening in ${languageLabels[myLanguage]}` : `Hold to speak ${languageLabels[myLanguage]}`}
