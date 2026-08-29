@@ -14,6 +14,7 @@ import { stopSessionMedia, type SessionTrack } from './lib/mediaLifecycle'
 import { openFloatingWidget, updateFloatingWidget, type PictureInPictureApi } from './lib/pictureInPicture'
 import { startChunkedStt } from './lib/chunkedStt'
 import { startLiveStt, type LiveSttSession, type TranscriptEvent } from './lib/liveStt'
+import { appendCommittedText } from './lib/translationContext'
 
 type AppMediaDevices = Pick<MediaDevices, 'getDisplayMedia' | 'getUserMedia'>
 type CaptureStatus = 'idle' | 'requesting' | 'active' | 'error'
@@ -65,11 +66,11 @@ function describeCaptureError(error: unknown, fallback: string): string {
   return fallback
 }
 
-async function translateText(text: string, sourceLanguage: SupportedLanguage, targetLanguage: SupportedLanguage): Promise<string> {
+async function translateText(text: string, sourceLanguage: SupportedLanguage, targetLanguage: SupportedLanguage, context: string[] = []): Promise<string> {
   const response = await fetch('/v1/translate', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ sourceLanguage, targetLanguage, text }),
+    body: JSON.stringify({ sourceLanguage, targetLanguage, text, context }),
   })
   if (!response.ok) throw new Error('Translation unavailable')
   const result = await response.json() as { text?: string }
@@ -102,6 +103,10 @@ function App({
   const [replyDraft, setReplyDraft] = useState<string | undefined>()
   const systemSttRef = useRef<LiveSttSession | null>(null)
   const microphoneSttRef = useRef<LiveSttSession | null>(null)
+  const incomingHistoryRef = useRef<string[]>([])
+  const outgoingHistoryRef = useRef<string[]>([])
+  const incomingTranslationRequestRef = useRef(0)
+  const outgoingTranslationRequestRef = useRef(0)
   const pipWindowRef = useRef<Window | null>(null)
   const [notice, setNotice] = useState<string | undefined>()
 
@@ -130,7 +135,13 @@ function App({
           if (!event.text) return
           setIncomingText(event.text)
           if (event.is_final && event.speech_final) {
-            try { setIncomingTranslation(await translateText(event.text, theirLanguage, incomingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+            const context = incomingHistoryRef.current
+            incomingHistoryRef.current = appendCommittedText(context, event.text)
+            const requestId = ++incomingTranslationRequestRef.current
+            try {
+              const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
+              if (requestId === incomingTranslationRequestRef.current) setIncomingTranslation(translation)
+            } catch { setNotice('Translation is temporarily unavailable.') }
           }
         }, { sendingOnStart: true, glossary: parseGlossary(gameGlossary) })
       } else if (typeof window.AudioContext !== 'undefined') {
@@ -142,7 +153,13 @@ function App({
           if (event.type !== 'transcript.partial' || !event.text) return
           setIncomingText(event.text)
           if (event.is_final && event.speech_final) {
-            try { setIncomingTranslation(await translateText(event.text, theirLanguage, incomingLanguage)) } catch { setNotice('Translation is temporarily unavailable.') }
+            const context = incomingHistoryRef.current
+            incomingHistoryRef.current = appendCommittedText(context, event.text)
+            const requestId = ++incomingTranslationRequestRef.current
+            try {
+              const translation = await translateText(event.text, theirLanguage, incomingLanguage, context)
+              if (requestId === incomingTranslationRequestRef.current) setIncomingTranslation(translation)
+            } catch { setNotice('Translation is temporarily unavailable.') }
           }
         }, { sendingOnStart: true })
       }
@@ -179,10 +196,15 @@ function App({
           setReplyText(event.text)
           setReplyDraft(undefined)
           if (event.is_final && event.speech_final) {
+            const context = outgoingHistoryRef.current
+            outgoingHistoryRef.current = appendCommittedText(context, event.text)
+            const requestId = ++outgoingTranslationRequestRef.current
             try {
-              const translation = await translateText(event.text, myLanguage, outgoingLanguage)
-              setReplyTranslation(translation)
-              setReplyDraft(translation)
+              const translation = await translateText(event.text, myLanguage, outgoingLanguage, context)
+              if (requestId === outgoingTranslationRequestRef.current) {
+                setReplyTranslation(translation)
+                setReplyDraft(translation)
+              }
             } catch { setNotice('Translation is temporarily unavailable.') }
           }
         }, { glossary: parseGlossary(gameGlossary) })
@@ -192,10 +214,15 @@ function App({
           setReplyText(event.text)
           setReplyDraft(undefined)
           if (event.is_final && event.speech_final) {
+            const context = outgoingHistoryRef.current
+            outgoingHistoryRef.current = appendCommittedText(context, event.text)
+            const requestId = ++outgoingTranslationRequestRef.current
             try {
-              const translation = await translateText(event.text, myLanguage, outgoingLanguage)
-              setReplyTranslation(translation)
-              setReplyDraft(translation)
+              const translation = await translateText(event.text, myLanguage, outgoingLanguage, context)
+              if (requestId === outgoingTranslationRequestRef.current) {
+                setReplyTranslation(translation)
+                setReplyDraft(translation)
+              }
             } catch { setNotice('Translation is temporarily unavailable.') }
           }
         })
@@ -222,6 +249,10 @@ function App({
     setPttActive(false)
     setSystemStatus('idle')
     setMicrophoneStatus('idle')
+    incomingHistoryRef.current = []
+    outgoingHistoryRef.current = []
+    incomingTranslationRequestRef.current += 1
+    outgoingTranslationRequestRef.current += 1
     setSetupStarted(false)
     setNotice('Session ended. Audio capture is off.')
   }
