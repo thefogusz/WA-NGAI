@@ -151,4 +151,59 @@ describe('WANGAI feasibility harness', () => {
 
     expect(requestWindow).toHaveBeenCalledOnce()
   })
+
+  it('recovers cleanly when a user shares a surface without audio', async () => {
+    const user = userEvent.setup()
+    const displayTrack = { readyState: 'live' as const, stop: vi.fn() }
+    const getDisplayMedia = vi.fn().mockResolvedValue({
+      getAudioTracks: () => [],
+      getTracks: () => [displayTrack],
+    })
+
+    render(
+      <App
+        capabilityReport={readyReport}
+        mediaDevices={{ getDisplayMedia, getUserMedia: vi.fn() } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start session' }))
+    await user.click(screen.getByRole('button', { name: 'Share audio' }))
+
+    expect(await screen.findByText('No audio track arrived. Share a screen and enable Share system audio.')).toBeVisible()
+    expect(displayTrack.stop).toHaveBeenCalledOnce()
+  })
+
+  it('ends a session by stopping the shared and microphone tracks', async () => {
+    const user = userEvent.setup()
+    const sharedTrack = { readyState: 'live' as const, stop: vi.fn() }
+    const displayTrack = { readyState: 'live' as const, stop: vi.fn() }
+    const microphoneTrack = { readyState: 'live' as const, stop: vi.fn() }
+
+    render(
+      <App
+        capabilityReport={readyReport}
+        mediaDevices={{
+          getDisplayMedia: vi.fn().mockResolvedValue({
+            getAudioTracks: () => [sharedTrack],
+            getTracks: () => [sharedTrack, displayTrack],
+          }),
+          getUserMedia: vi.fn().mockResolvedValue({
+            getAudioTracks: () => [microphoneTrack],
+            getTracks: () => [microphoneTrack],
+          }),
+        } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start session' }))
+    await user.click(screen.getByRole('button', { name: 'Share audio' }))
+    await user.click(screen.getByRole('button', { name: 'Enable microphone' }))
+    await user.click(screen.getByRole('button', { name: 'End session' }))
+
+    expect(sharedTrack.stop).toHaveBeenCalledOnce()
+    expect(displayTrack.stop).toHaveBeenCalledOnce()
+    expect(microphoneTrack.stop).toHaveBeenCalledOnce()
+    expect(await screen.findByText('Session ended. Audio capture is off.')).toBeVisible()
+  })
 })
