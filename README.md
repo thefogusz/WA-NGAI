@@ -37,7 +37,7 @@ These limits are validation gates, not hidden future problems.
 
 The local MVP is implemented in `apps/web`: permission-gated game-audio and microphone capture, local voice-gated WebM chunks, final-utterance translation, right-aligned reply bubbles with explicit Copy, push-to-talk, a compact game-terms field, and a 360 × 220 Document Picture-in-Picture widget.
 
-The local API boundary is implemented in `apps/api`. It reads `GROQ_API_KEY` and `XAI_API_KEY` only from the ignored root `.env.local` file. Browser audio goes to local-only `POST /v1/stt/chunk`, then the API submits it to Groq `whisper-large-v3-turbo`; final text goes through local-only `POST /v1/translate` to the existing xAI translation path. The browser never receives either key. The chunker limits uploads to one per six seconds and discards silent shared-audio chunks locally. This is not a public deployment: add user authentication and server-side per-user quotas before sharing it publicly.
+The local API boundary is implemented in `apps/api`. It reads `GROQ_API_KEY` and `XAI_API_KEY` only from the ignored root `.env.local` file. Browser audio goes to local-only `POST /v1/stt/chunk`, then the API submits it to Groq `whisper-large-v3-turbo`; final text goes through local-only `POST /v1/translate` to the existing xAI translation path. The browser never receives either key. The chunker limits uploads to one per six seconds and discards silent shared-audio chunks locally; the local API adds a rolling 18-request-per-minute circuit breaker. This is not a public deployment: add user authentication and server-side per-user quotas before sharing it publicly.
 
 ## Run locally
 
