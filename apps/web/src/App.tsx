@@ -335,8 +335,6 @@ function App({
   }
   const incomingLanguage = theirLanguage === 'en' ? 'th' : 'en'
   const outgoingLanguage = myLanguage === 'en' ? 'th' : 'en'
-  const incomingDirection = `${languageLabels[theirLanguage]} → ${languageLabels[incomingLanguage]}`
-  const outgoingDirection = `${languageLabels[myLanguage]} → ${languageLabels[outgoingLanguage]}`
 
   const captureShortcut = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (!shortcutCapture) {
@@ -430,10 +428,6 @@ function App({
               <div>
                 <span className="source-kicker">LANGUAGES</span>
                 <strong>Keep both sides clear</strong>
-              </div>
-              <div className="direction-summary">
-                <span>{incomingDirection}</span>
-                <span>{outgoingDirection}</span>
               </div>
             </div>
             <div className="language-grid">

@@ -98,7 +98,7 @@ describe('WANGAI feasibility harness', () => {
     await user.selectOptions(screen.getByLabelText('They speak'), 'th')
     await user.selectOptions(screen.getByLabelText('I speak'), 'en')
 
-    expect(screen.getByText('Thai → English')).toBeVisible()
+    expect(screen.queryByText('Thai → English')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Set shortcut' }))
     await user.keyboard('v')
