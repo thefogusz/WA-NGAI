@@ -1,13 +1,17 @@
 import type { LiveSttSession, TranscriptEvent } from './liveStt'
-import { startSileroVad, type SpeechDetector } from './sileroVad'
+import { startSileroVad, type SpeechDetector, type VadProfile } from './sileroVad'
 
 type ChunkedSttOptions = {
   glossary?: string[]
   sendingOnStart?: boolean
-  startDetector?: (stream: MediaStream, onSegment: (segment: Blob) => void) => Promise<SpeechDetector>
+  vadProfile?: VadProfile
+  startDetector?: (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile) => Promise<SpeechDetector>
 }
 
 const MIN_REQUEST_INTERVAL_MS = 6_000
+
+const startDefaultDetector = (stream: MediaStream, onSegment: (segment: Blob) => void, profile?: VadProfile) =>
+  startSileroVad(stream, onSegment, undefined, profile)
 
 function recorderMimeType() {
   return MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : undefined
@@ -37,7 +41,7 @@ export async function startChunkedStt(
   stream: MediaStream,
   sourceLanguage: 'en' | 'th',
   onEvent: (event: TranscriptEvent) => void,
-  { glossary = [], sendingOnStart = false, startDetector = startSileroVad }: ChunkedSttOptions = {},
+  { glossary = [], sendingOnStart = false, vadProfile = 'game', startDetector = startDefaultDetector }: ChunkedSttOptions = {},
 ): Promise<LiveSttSession> {
   const audioStream = new MediaStream(stream.getAudioTracks())
   const options = recorderMimeType() ? { mimeType: recorderMimeType() } : undefined
@@ -86,7 +90,7 @@ export async function startChunkedStt(
   if (sendingOnStart) {
     detector = await startDetector(audioStream, (segment) => {
       if (sending) enqueue(segment)
-    })
+    }, vadProfile)
   }
 
   return {

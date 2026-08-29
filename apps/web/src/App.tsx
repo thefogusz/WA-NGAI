@@ -15,6 +15,7 @@ import { openFloatingWidget, updateFloatingWidget, type PictureInPictureApi } fr
 import { startChunkedStt } from './lib/chunkedStt'
 import { startLiveStt, type LiveSttSession, type TranscriptEvent } from './lib/liveStt'
 import { appendCommittedText } from './lib/translationContext'
+import type { VadProfile } from './lib/sileroVad'
 
 type AppMediaDevices = Pick<MediaDevices, 'getDisplayMedia' | 'getUserMedia'>
 type CaptureStatus = 'idle' | 'requesting' | 'active' | 'error'
@@ -96,6 +97,7 @@ function App({
   const [shortcut, setShortcut] = useState<string | undefined>()
   const [shortcutCapture, setShortcutCapture] = useState(false)
   const [gameGlossary, setGameGlossary] = useState('')
+  const [vadProfile, setVadProfile] = useState<VadProfile>('game')
   const [incomingText, setIncomingText] = useState<string | undefined>()
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
   const [replyText, setReplyText] = useState<string | undefined>()
@@ -143,7 +145,7 @@ function App({
               if (requestId === incomingTranslationRequestRef.current) setIncomingTranslation(translation)
             } catch { setNotice('Translation is temporarily unavailable.') }
           }
-        }, { sendingOnStart: true, glossary: parseGlossary(gameGlossary) })
+        }, { sendingOnStart: true, glossary: parseGlossary(gameGlossary), vadProfile })
       } else if (typeof window.AudioContext !== 'undefined') {
         systemSttRef.current = await startLiveStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
           if (event.type === 'error') {
@@ -446,6 +448,15 @@ function App({
                 value={gameGlossary}
               />
               <small>Comma-separated names help spelling; kept only in this session.</small>
+            </label>
+            <label className="audio-profile-field">
+              <span className="source-kicker">INCOMING AUDIO</span>
+              <select aria-label="Incoming audio" onChange={(event) => setVadProfile(event.target.value as VadProfile)} value={vadProfile}>
+                <option value="game">Game · balanced</option>
+                <option value="discord">Discord · responsive</option>
+                <option value="video">Video · clear sentences</option>
+              </select>
+              <small>{vadProfile === 'discord' ? 'Responds faster to short voice-chat turns.' : vadProfile === 'video' ? 'Waits longer for complete spoken sentences.' : 'Balanced for mixed game and voice audio.'}</small>
             </label>
           </section>
         )}
