@@ -13,9 +13,11 @@ describe('openFloatingWidget', () => {
     )
 
     expect(requestWindow).toHaveBeenCalledWith({ height: 220, width: 360 })
-    expect(pipDocument.body.textContent).toContain('WA-NGAI')
+    expect(pipDocument.body.textContent).toContain('WANGAI')
+    expect(pipDocument.querySelector('.topline')?.textContent).not.toContain('ว่าไง')
     expect(pipDocument.body.textContent).toContain('Listening to shared audio')
-    expect(pipDocument.body.textContent).toContain('Mic ready')
+    expect(pipDocument.querySelector('[data-wangai-mic-status]')?.textContent).toContain('Mic on')
+    expect(pipDocument.querySelector('[data-wangai-audio-status]')?.textContent).toContain('Audio on')
     expect(pipDocument.querySelector('[data-wangai-widget]')).not.toBeNull()
   })
 
@@ -54,5 +56,12 @@ describe('openFloatingWidget', () => {
     expect(pipDocument.querySelector('[data-wangai-incoming]')?.textContent).toBe('Bridge clear.')
     expect(pipDocument.querySelector('[data-wangai-incoming-translation]')?.textContent).toBe('')
     expect(pipDocument.querySelector('[data-wangai-pending]')?.textContent).toContain('I am crossing now.')
+
+    updateFloatingWidget(pipWindow, {
+      microphoneReady: false,
+      systemAudioActive: false,
+    })
+    expect(pipDocument.querySelector('[data-wangai-mic-status]')?.textContent).toContain('Mic off')
+    expect(pipDocument.querySelector('[data-wangai-audio-status]')?.textContent).toContain('Audio off')
   })
 })
