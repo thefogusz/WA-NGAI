@@ -412,10 +412,12 @@ function App({
             <h2 id="session-title">{setupStarted ? 'Your live space' : 'Ready when you are'}</h2>
           </div>
           <div className="widget-actions">
-            <span className={`status-pill ${systemStatus === 'active' ? 'is-active' : ''}`}>
-              <span aria-hidden="true" className="status-dot" />
-              {systemStatus === 'active' ? incomingStage === 'transcribing' ? 'Transcribing' : incomingStage === 'translating' ? 'Translating' : 'Listening' : 'Private'}
-            </span>
+            {systemStatus === 'active' && (
+              <span className="status-pill is-active">
+                <span aria-hidden="true" className="status-dot" />
+                {incomingStage === 'transcribing' ? 'Transcribing' : incomingStage === 'translating' ? 'Translating' : 'Listening'}
+              </span>
+            )}
             <button
               aria-expanded={settingsOpen}
               className="settings-button"

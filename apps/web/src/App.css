@@ -16,7 +16,9 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 .status-pill.is-active { animation: active-wash 2.4s ease-in-out infinite; background: rgba(72, 177, 113, .14); color: #7ad89f; }
 .status-dot { background: #737681; border-radius: 50%; display: inline-block; height: 7px; width: 7px; }
 .is-active .status-dot { background: #66ce90; box-shadow: 0 0 0 3px rgba(102, 206, 144, .12); }
-.settings-button { background: transparent; border: 0; color: #a5a8b3; font-size: 11px; min-height: 32px; padding: 5px 2px; text-decoration: underline; text-underline-offset: 3px; }
+.settings-button { background: #24262f; border: 0; border-radius: 999px; color: #b9bcc6; font-size: 11px; font-weight: 650; min-height: 32px; padding: 7px 11px; transition: background-color 150ms ease-out, color 150ms ease-out, transform 150ms ease-out; }
+.settings-button:hover { background: #30323d; color: #f0f1f4; transform: translateY(-1px); }
+.settings-button[aria-expanded="true"] { background: rgba(72, 177, 113, .14); color: #7ad89f; }
 
 .settings-panel { animation: settings-enter 170ms ease-out both; border-bottom: 1px solid #30323c; display: grid; gap: 13px; margin-top: 18px; padding: 0 0 18px; }
 .settings-heading { align-items: flex-end; display: flex; justify-content: space-between; gap: 12px; }

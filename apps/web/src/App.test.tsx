@@ -28,6 +28,8 @@ describe('WANGAI feasibility harness', () => {
     expect(screen.queryByText('xAI API key')).not.toBeInTheDocument()
     expect(screen.queryByText('External audio only')).not.toBeInTheDocument()
     expect(screen.queryByText('No game hooks')).not.toBeInTheDocument()
+    expect(screen.queryByText('Private')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveClass('settings-button')
 
     await user.click(screen.getByRole('button', { name: 'Start session' }))
 
