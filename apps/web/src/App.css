@@ -60,6 +60,11 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 .source-copy strong { font-size: 14px; }
 .source-copy > span:last-child { color: #9295a1; font-size: 11px; }
 .source-kicker { color: #7f828e; font-size: 9px; font-weight: 750; letter-spacing: .12em; }
+.audio-health { align-items: center; color: #9295a1; display: flex; font-size: 10px; gap: 8px; margin: -3px 2px 1px; }
+.audio-bars { align-items: end; display: inline-flex; gap: 2px; height: 14px; }
+.audio-bars span { background: #474a55; border-radius: 99px; height: 4px; transition: background-color 120ms ease-out, transform 120ms ease-out; width: 3px; }
+.audio-bars span:nth-child(2) { height: 6px; }.audio-bars span:nth-child(3) { height: 8px; }.audio-bars span:nth-child(4) { height: 11px; }.audio-bars span:nth-child(5) { height: 14px; }
+.audio-bars span.is-lit { background: #70d99b; transform: translateY(-1px); }
 .ptt-panel { align-items: center; background: #202229; border: 1px solid #323540; border-radius: 15px; display: flex; gap: 12px; justify-content: space-between; min-height: 76px; padding: 12px; transition: border-color 160ms ease-out, box-shadow 160ms ease-out; }
 .ptt-panel:has(.ptt-button.is-active) { border-color: rgba(99, 196, 139, .6); box-shadow: 0 0 0 3px rgba(99, 196, 139, .08); }
 .ptt-copy { display: grid; gap: 3px; }

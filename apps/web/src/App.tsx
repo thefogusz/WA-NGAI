@@ -16,6 +16,7 @@ import { startChunkedStt } from './lib/chunkedStt'
 import { startLiveStt, type LiveSttSession, type TranscriptEvent } from './lib/liveStt'
 import { appendCommittedText } from './lib/translationContext'
 import type { VadProfile } from './lib/sileroVad'
+import { startAudioMeter, type AudioMeter } from './lib/audioMeter'
 
 type AppMediaDevices = Pick<MediaDevices, 'getDisplayMedia' | 'getUserMedia'>
 type CaptureStatus = 'idle' | 'requesting' | 'active' | 'error'
@@ -100,11 +101,13 @@ function App({
   const [vadProfile, setVadProfile] = useState<VadProfile>('game')
   const [incomingText, setIncomingText] = useState<string | undefined>()
   const [incomingTranslation, setIncomingTranslation] = useState<string | undefined>()
+  const [incomingAudioLevel, setIncomingAudioLevel] = useState(0)
   const [replyText, setReplyText] = useState<string | undefined>()
   const [replyTranslation, setReplyTranslation] = useState<string | undefined>()
   const [replyDraft, setReplyDraft] = useState<string | undefined>()
   const systemSttRef = useRef<LiveSttSession | null>(null)
   const microphoneSttRef = useRef<LiveSttSession | null>(null)
+  const systemMeterRef = useRef<AudioMeter | undefined>(undefined)
   const incomingHistoryRef = useRef<string[]>([])
   const outgoingHistoryRef = useRef<string[]>([])
   const incomingTranslationRequestRef = useRef(0)
@@ -128,6 +131,11 @@ function App({
         getDisplayMedia: (options) => mediaDevices.getDisplayMedia(options),
       })
       setSystemTracks(capture.allTracks)
+      try {
+        systemMeterRef.current = startAudioMeter(capture.stream as MediaStream, setIncomingAudioLevel)
+      } catch {
+        systemMeterRef.current = undefined
+      }
       if (supportsChunkedStt()) {
         systemSttRef.current = await startChunkedStt(capture.stream as MediaStream, theirLanguage, async (event: TranscriptEvent) => {
           if (event.type === 'error') {
@@ -168,6 +176,8 @@ function App({
       setSystemStatus('active')
     } catch (error) {
       if (capture) {
+        systemMeterRef.current?.stop()
+        systemMeterRef.current = undefined
         await stopSessionMedia(capture.allTracks)
         setSystemTracks([])
       }
@@ -243,14 +253,17 @@ function App({
   const endSession = async () => {
     systemSttRef.current?.stop()
     microphoneSttRef.current?.stop()
+    systemMeterRef.current?.stop()
     systemSttRef.current = null
     microphoneSttRef.current = null
+    systemMeterRef.current = undefined
     await stopSessionMedia([...systemTracks, ...microphoneTracks])
     setSystemTracks([])
     setMicrophoneTracks([])
     setPttActive(false)
     setSystemStatus('idle')
     setMicrophoneStatus('idle')
+    setIncomingAudioLevel(0)
     incomingHistoryRef.current = []
     outgoingHistoryRef.current = []
     incomingTranslationRequestRef.current += 1
@@ -504,6 +517,15 @@ function App({
                 {systemStatus === 'requesting' ? 'Waiting…' : systemStatus === 'active' ? 'Connected' : 'Share audio'}
               </button>
             </div>
+
+            {systemStatus === 'active' && (
+              <div className="audio-health" aria-live="polite">
+                <div aria-hidden="true" className="audio-bars">
+                  {[0.04, 0.1, 0.2, 0.38, 0.62].map((threshold) => <span className={incomingAudioLevel >= threshold ? 'is-lit' : ''} key={threshold} />)}
+                </div>
+                <span>{incomingAudioLevel >= 0.04 ? 'Audio input: sound detected' : 'Audio input: waiting for sound'}</span>
+              </div>
+            )}
 
             {incomingText && (
               <div className="incoming-preview" aria-live="polite" key={incomingText}>
