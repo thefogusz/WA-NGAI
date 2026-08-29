@@ -113,6 +113,7 @@ function App({
   const incomingTranslationRequestRef = useRef(0)
   const outgoingTranslationRequestRef = useRef(0)
   const pipWindowRef = useRef<Window | null>(null)
+  const [pipWindowRevision, setPipWindowRevision] = useState(0)
   const [notice, setNotice] = useState<string | undefined>()
 
   const commitIncomingTranscript = async (text: string) => {
@@ -304,10 +305,12 @@ function App({
         incomingTranslation,
         incomingPendingText,
         microphoneReady: microphoneStatus === 'active',
+        pushToTalkActive: pttActive,
         replyText,
         replyTranslation,
         systemAudioActive: systemStatus === 'active',
       })
+      setPipWindowRevision((revision) => revision + 1)
       setNotice(undefined)
     } catch {
       setNotice('Could not open the floating widget. You can keep using the compact page.')
@@ -376,13 +379,20 @@ function App({
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
+    const eventTargets: Window[] = [window]
+    const pipWindow = pipWindowRef.current
+    if (pipWindow && !pipWindow.closed) eventTargets.push(pipWindow)
+    eventTargets.forEach((eventTarget) => {
+      eventTarget.addEventListener('keydown', handleKeyDown)
+      eventTarget.addEventListener('keyup', handleKeyUp)
+    })
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
+      eventTargets.forEach((eventTarget) => {
+        eventTarget.removeEventListener('keydown', handleKeyDown)
+        eventTarget.removeEventListener('keyup', handleKeyUp)
+      })
     }
-  }, [microphoneStatus, setupStarted, shortcut, shortcutCapture])
+  }, [microphoneStatus, pipWindowRevision, setupStarted, shortcut, shortcutCapture])
 
   useEffect(() => {
     if (pipWindowRef.current && !pipWindowRef.current.closed) {
@@ -391,12 +401,13 @@ function App({
         incomingTranslation,
         incomingPendingText,
         microphoneReady: microphoneStatus === 'active',
+        pushToTalkActive: pttActive,
         replyText,
         replyTranslation,
         systemAudioActive: systemStatus === 'active',
       })
     }
-  }, [incomingPendingText, incomingText, incomingTranslation, microphoneStatus, replyText, replyTranslation, systemStatus])
+  }, [incomingPendingText, incomingText, incomingTranslation, microphoneStatus, pttActive, replyText, replyTranslation, systemStatus])
 
   return (
     <main className="app-shell">

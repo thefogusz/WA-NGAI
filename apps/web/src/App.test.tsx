@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -133,6 +133,43 @@ describe('WANGAI feasibility harness', () => {
     expect(screen.getByRole('button', { name: 'Listening in Thai' })).toBeVisible()
 
     fireEvent.keyUp(window, { key: 'v' })
+    expect(screen.getByRole('button', { name: 'Hold to speak Thai' })).toBeVisible()
+  })
+
+  it('uses the configured shortcut while the floating PiP window has focus', async () => {
+    const user = userEvent.setup()
+    const microphoneTrack = { readyState: 'live' as const, stop: vi.fn() }
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getAudioTracks: () => [microphoneTrack],
+      getTracks: () => [microphoneTrack],
+    })
+    const pipEventTarget = new EventTarget()
+    const addEventListener = vi.spyOn(pipEventTarget, 'addEventListener')
+    const pipWindow = Object.assign(pipEventTarget, {
+      closed: false,
+      document: document.implementation.createHTMLDocument('WANGAI'),
+    }) as unknown as Window
+
+    render(
+      <App
+        capabilityReport={readyReport}
+        mediaDevices={{ getDisplayMedia: vi.fn(), getUserMedia } as never}
+        pictureInPictureApi={{ requestWindow: vi.fn().mockResolvedValue(pipWindow) }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start session' }))
+    await user.click(screen.getByRole('button', { name: 'Enable microphone' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Set shortcut' }))
+    await user.keyboard('v')
+    await user.click(screen.getByRole('button', { name: 'Open overlay' }))
+    await waitFor(() => expect(addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function)))
+
+    act(() => pipWindow.dispatchEvent(new KeyboardEvent('keydown', { key: 'v' })))
+    expect(screen.getByRole('button', { name: 'Listening in Thai' })).toBeVisible()
+
+    act(() => pipWindow.dispatchEvent(new KeyboardEvent('keyup', { key: 'v' })))
     expect(screen.getByRole('button', { name: 'Hold to speak Thai' })).toBeVisible()
   })
 

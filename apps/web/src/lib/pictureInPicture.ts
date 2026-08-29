@@ -10,13 +10,14 @@ export type FloatingWidgetSnapshot = {
   microphoneReady: boolean
   replyText?: string
   replyTranslation?: string
+  pushToTalkActive?: boolean
 }
 
 const widgetStyles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap');
   :root { color: #f7f7fb; font-family: "DM Sans", Inter, ui-sans-serif, system-ui, sans-serif; }
-  body { margin: 0; min-width: 0; background: transparent; }
-  [data-wangai-widget] { background: #15161b; border: 1px solid rgba(255, 255, 255, .11); border-radius: 18px; box-sizing: border-box; min-height: 100vh; padding: 16px; }
+  body { margin: 0; min-width: 0; background: #15161b; overflow: hidden; }
+  [data-wangai-widget] { background: #15161b; border-radius: 0; box-sizing: border-box; min-height: 100vh; padding: 16px; }
   .topline { align-items: center; color: #9ea1ac; display: flex; font-size: 11px; font-weight: 700; justify-content: space-between; letter-spacing: .1em; }
   .live { align-items: center; color: #75d5a0; display: flex; font-size: 11px; gap: 6px; letter-spacing: 0; }
   .dot { background: #62ce90; border-radius: 50%; box-shadow: 0 0 0 3px rgba(98, 206, 144, .12); height: 7px; width: 7px; }
@@ -49,7 +50,7 @@ export async function openFloatingWidget(
     <div class="message"><strong data-wangai-incoming>${snapshot.systemAudioActive ? 'Listening to shared audio' : 'Waiting for shared audio'}</strong><span class="translation" data-wangai-incoming-translation lang="th">${snapshot.systemAudioActive ? 'แปลข้อความเมื่อการเชื่อมต่อพร้อม' : 'เริ่มจากกดแชร์เสียงเกม'}</span></div>
     <div class="message pending" data-wangai-pending hidden><strong></strong><span class="translation">Translating…</span></div>
     <div class="message reply" data-wangai-reply hidden><strong></strong><span class="translation"></span></div>
-    <div class="footer"><span class="footer-status" data-wangai-mic-status><i></i><span></span></span><span class="footer-status" data-wangai-audio-status><i></i><span></span></span></div>
+    <div class="footer"><span class="footer-status" data-wangai-mic-status><i></i><span></span></span><span class="footer-status" data-wangai-audio-status><i></i><span></span></span><span class="footer-status" data-wangai-toggle-status><i></i><span></span></span></div>
   `
 
   document.title = 'WA-NGAI'
@@ -67,6 +68,7 @@ export function updateFloatingWidget(pipWindow: Window, snapshot: FloatingWidget
   const reply = document.querySelector<HTMLElement>('[data-wangai-reply]')
   const microphoneStatus = document.querySelector<HTMLElement>('[data-wangai-mic-status]')
   const audioStatus = document.querySelector<HTMLElement>('[data-wangai-audio-status]')
+  const toggleStatus = document.querySelector<HTMLElement>('[data-wangai-toggle-status]')
 
   if (incoming && snapshot.incomingText) setWidgetText(incoming, snapshot.incomingText)
   if (incomingTranslation) setWidgetText(incomingTranslation, snapshot.incomingTranslation ?? '')
@@ -77,12 +79,11 @@ export function updateFloatingWidget(pipWindow: Window, snapshot: FloatingWidget
   if (reply && (snapshot.replyText || snapshot.replyTranslation)) {
     reply.hidden = false
     setWidgetText(reply.querySelector('strong')!, snapshot.replyText ?? snapshot.replyTranslation ?? '')
-    setWidgetText(reply.querySelector('.translation')!, snapshot.replyTranslation
-      ? `Translation · ${snapshot.replyTranslation}`
-      : '')
+    setWidgetText(reply.querySelector('.translation')!, snapshot.replyTranslation ?? '')
   }
   if (microphoneStatus) setFooterStatus(microphoneStatus, 'Mic', snapshot.microphoneReady)
   if (audioStatus) setFooterStatus(audioStatus, 'Audio', snapshot.systemAudioActive)
+  if (toggleStatus) setFooterStatus(toggleStatus, 'Toggle', Boolean(snapshot.pushToTalkActive))
 }
 
 function setFooterStatus(element: HTMLElement, label: string, active: boolean) {

@@ -19,6 +19,29 @@ describe('openFloatingWidget', () => {
     expect(pipDocument.querySelector('[data-wangai-mic-status]')?.textContent).toContain('Mic on')
     expect(pipDocument.querySelector('[data-wangai-audio-status]')?.textContent).toContain('Audio on')
     expect(pipDocument.querySelector('[data-wangai-widget]')).not.toBeNull()
+    expect(pipDocument.querySelector('style')?.textContent).toContain('body { margin: 0; min-width: 0; background: #15161b;')
+    expect(pipDocument.querySelector('style')?.textContent).toContain('border-radius: 0;')
+  })
+
+  it('shows whether push-to-talk is toggled without making the PiP a control', async () => {
+    const pipDocument = document.implementation.createHTMLDocument('WANGAI')
+
+    const pipWindow = await openFloatingWidget(
+      { requestWindow: vi.fn().mockResolvedValue({ document: pipDocument }) },
+      { microphoneReady: true, pushToTalkActive: false, systemAudioActive: true },
+    )
+
+    const toggleStatus = pipDocument.querySelector<HTMLElement>('[data-wangai-toggle-status]')
+    expect(toggleStatus?.textContent).toContain('Toggle off')
+    expect(pipDocument.querySelector('[data-wangai-ptt-toggle]')).toBeNull()
+
+    updateFloatingWidget(pipWindow, {
+      microphoneReady: true,
+      pushToTalkActive: true,
+      systemAudioActive: true,
+    })
+    expect(toggleStatus?.textContent).toContain('Toggle on')
+    expect(toggleStatus?.classList.contains('is-active')).toBe(true)
   })
 
   it('renders transcript updates as text, including a right-side reply', async () => {
@@ -44,7 +67,8 @@ describe('openFloatingWidget', () => {
     const reply = pipDocument.querySelector('[data-wangai-reply]')
     expect(reply?.querySelector('strong')?.textContent).toBe('กำลังไป')
     expect(reply?.querySelector('strong')?.getAttribute('lang')).toBe('th')
-    expect(reply?.textContent).toContain('Translation · On my way.')
+    expect(reply?.textContent).toContain('On my way.')
+    expect(reply?.textContent).not.toContain('Translation')
     expect(reply?.hasAttribute('hidden')).toBe(false)
 
     updateFloatingWidget(pipWindow, {
