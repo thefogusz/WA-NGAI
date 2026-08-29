@@ -113,7 +113,7 @@ Widget expands; draft English appears. Translation begins only after a stable/fi
 
 ### 4. Microphone recording
 
-User clicks the microphone control. The control becomes a clear stop square and reads `พูดภาษาไทยได้เลย`. A timer appears after 10 seconds.
+User enables microphone permission once, then holds the visible `Hold to speak Thai` control in the widget. While held, it reads `Listening in Thai`; release finalizes the utterance. A timer appears after 10 seconds.
 
 ### 5. Translating reply
 

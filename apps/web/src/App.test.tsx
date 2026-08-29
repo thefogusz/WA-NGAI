@@ -59,6 +59,34 @@ describe('WANGAI feasibility harness', () => {
     expect(getDisplayMedia).toHaveBeenCalledOnce()
   })
 
+  it('starts and stops the Thai push-to-talk control only after microphone permission is granted', async () => {
+    const user = userEvent.setup()
+    const microphoneTrack = { readyState: 'live' as const, stop: vi.fn() }
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getAudioTracks: () => [microphoneTrack],
+      getTracks: () => [microphoneTrack],
+    })
+
+    render(
+      <App
+        capabilityReport={readyReport}
+        mediaDevices={{ getDisplayMedia: vi.fn(), getUserMedia } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start session' }))
+    expect(screen.queryByRole('button', { name: 'Hold to speak Thai' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Enable microphone' }))
+    const pttButton = await screen.findByRole('button', { name: 'Hold to speak Thai' })
+
+    await user.pointer([{ keys: '[MouseLeft>]', target: pttButton }])
+    expect(screen.getByRole('button', { name: 'Listening in Thai' })).toBeVisible()
+
+    await user.pointer([{ keys: '[/MouseLeft]' }])
+    expect(screen.getByRole('button', { name: 'Hold to speak Thai' })).toBeVisible()
+  })
+
   it('opens a compact floating widget only from an explicit user action', async () => {
     const user = userEvent.setup()
     const requestWindow = vi.fn().mockResolvedValue({

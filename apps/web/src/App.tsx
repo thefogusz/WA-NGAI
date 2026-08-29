@@ -59,6 +59,7 @@ function App({
   const [microphoneStatus, setMicrophoneStatus] = useState<CaptureStatus>('idle')
   const [systemTracks, setSystemTracks] = useState<SessionTrack[]>([])
   const [microphoneTracks, setMicrophoneTracks] = useState<SessionTrack[]>([])
+  const [pttActive, setPttActive] = useState(false)
   const [notice, setNotice] = useState<string | undefined>()
 
   const startSystemAudio = async () => {
@@ -109,6 +110,7 @@ function App({
     await stopSessionMedia([...systemTracks, ...microphoneTracks])
     setSystemTracks([])
     setMicrophoneTracks([])
+    setPttActive(false)
     setSystemStatus('idle')
     setMicrophoneStatus('idle')
     setSetupStarted(false)
@@ -137,6 +139,7 @@ function App({
     systemStatus === 'active' ? 'Listening to shared audio' : 'Game / Discord audio'
   const microphoneLabel =
     microphoneStatus === 'active' ? 'Microphone ready' : 'Your microphone'
+  const stopPushToTalk = () => setPttActive(false)
 
   return (
     <main className="app-shell">
@@ -216,6 +219,37 @@ function App({
                 {microphoneStatus === 'requesting' ? 'Waiting…' : microphoneStatus === 'active' ? 'Connected' : 'Enable microphone'}
               </button>
             </div>
+
+            {microphoneStatus === 'active' && (
+              <section className="ptt-panel" aria-labelledby="ptt-title">
+                <div className="ptt-copy">
+                  <span className="source-kicker">THAI REPLY</span>
+                  <strong id="ptt-title">{pttActive ? 'Listening in Thai' : 'Hold to speak Thai'}</strong>
+                  <span>{pttActive ? 'Release to finalize your reply.' : 'Your English reply will appear on the right.'}</span>
+                </div>
+                <button
+                  aria-label={pttActive ? 'Listening in Thai' : 'Hold to speak Thai'}
+                  className={`ptt-button ${pttActive ? 'is-active' : ''}`}
+                  type="button"
+                  onPointerCancel={stopPushToTalk}
+                  onPointerDown={(event) => {
+                    event.currentTarget.setPointerCapture?.(event.pointerId)
+                    setNotice(undefined)
+                    setPttActive(true)
+                  }}
+                  onPointerUp={stopPushToTalk}
+                >
+                  {pttActive ? 'Release' : 'Hold'}
+                </button>
+              </section>
+            )}
+
+            {microphoneStatus === 'active' && (
+              <div className="reply-preview" aria-live="polite">
+                <span className="source-kicker">YOUR REPLY</span>
+                <strong>{pttActive ? '…' : 'Ready when you are'}</strong>
+              </div>
+            )}
 
             {report.canOpenFloatingWidget && (
               <button className="widget-open-button" type="button" onClick={openWidget}>

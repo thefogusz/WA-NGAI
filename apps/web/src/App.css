@@ -38,10 +38,18 @@ h2 { font-size: 18px; letter-spacing: -.035em; margin-bottom: 0; }
 .source-copy strong { font-size: 14px; }
 .source-copy > span:last-child { color: #9295a1; font-size: 11px; }
 .source-kicker { color: #7f828e; font-size: 9px; font-weight: 750; letter-spacing: .12em; }
+.ptt-panel { align-items: center; background: #202229; border: 1px solid #323540; border-radius: 15px; display: flex; gap: 12px; justify-content: space-between; min-height: 76px; padding: 12px; }
+.ptt-copy { display: grid; gap: 3px; }
+.ptt-copy strong { font-size: 14px; }
+.ptt-copy > span:last-child { color: #9295a1; font-size: 11px; }
+.ptt-button { background: #f1f3f5; border: 0; border-radius: 999px; color: #15171c; font-size: 12px; font-weight: 750; min-height: 42px; min-width: 70px; transition: background-color 130ms ease-out, transform 130ms ease-out; }
+.ptt-button:active, .ptt-button.is-active { background: #63c48b; transform: scale(.96); }
+.reply-preview { align-items: flex-end; background: #25272f; border-radius: 14px; display: grid; gap: 4px; justify-self: end; max-width: 80%; min-width: 176px; padding: 11px 13px; text-align: right; }
+.reply-preview strong { color: #eff0f4; font-size: 14px; }
 .inline-note, .notice { color: #a5a7b1; font-size: 12px; line-height: 1.45; margin: 0; text-align: center; }
 .notice { background: rgba(178, 130, 42, .1); border: 1px solid rgba(218, 175, 92, .24); border-radius: 11px; color: #e4ca8c; margin-top: 13px; padding: 9px 11px; text-align: left; }
 
-.primary-button:focus-visible, .secondary-button:focus-visible, .widget-open-button:focus-visible, .text-button:focus-visible { outline: 3px solid rgba(111, 210, 151, .55); outline-offset: 3px; }
+.primary-button:focus-visible, .secondary-button:focus-visible, .widget-open-button:focus-visible, .text-button:focus-visible, .ptt-button:focus-visible { outline: 3px solid rgba(111, 210, 151, .55); outline-offset: 3px; }
 .status-pill.is-active .status-dot { animation: listening-pulse 1.7s ease-in-out infinite; }
 
 @keyframes card-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
