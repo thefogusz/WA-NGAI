@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import './App.css'
 import {
@@ -173,6 +173,32 @@ function App({
     setShortcut(event.key.length === 1 ? event.key.toUpperCase() : event.key)
     setShortcutCapture(false)
   }
+
+  useEffect(() => {
+    if (!shortcut || !setupStarted || microphoneStatus !== 'active') {
+      return undefined
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!shortcutCapture && !event.repeat && event.key.toUpperCase() === shortcut) {
+        event.preventDefault()
+        setPttActive(true)
+      }
+    }
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!shortcutCapture && event.key.toUpperCase() === shortcut) {
+        event.preventDefault()
+        setPttActive(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [microphoneStatus, setupStarted, shortcut, shortcutCapture])
 
   return (
     <main className="app-shell">

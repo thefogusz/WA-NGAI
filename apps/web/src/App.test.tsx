@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -102,6 +102,34 @@ describe('WANGAI feasibility harness', () => {
     await user.keyboard('v')
 
     expect(screen.getByRole('button', { name: 'Shortcut V' })).toBeVisible()
+  })
+
+  it('uses the configured shortcut for push-to-talk while WA-NGAI has focus', async () => {
+    const user = userEvent.setup()
+    const microphoneTrack = { readyState: 'live' as const, stop: vi.fn() }
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getAudioTracks: () => [microphoneTrack],
+      getTracks: () => [microphoneTrack],
+    })
+
+    render(
+      <App
+        capabilityReport={readyReport}
+        mediaDevices={{ getDisplayMedia: vi.fn(), getUserMedia } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start session' }))
+    await user.click(screen.getByRole('button', { name: 'Enable microphone' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Set shortcut' }))
+    await user.keyboard('v')
+
+    fireEvent.keyDown(window, { key: 'v' })
+    expect(screen.getByRole('button', { name: 'Listening in Thai' })).toBeVisible()
+
+    fireEvent.keyUp(window, { key: 'v' })
+    expect(screen.getByRole('button', { name: 'Hold to speak Thai' })).toBeVisible()
   })
 
   it('opens a compact floating widget only from an explicit user action', async () => {
